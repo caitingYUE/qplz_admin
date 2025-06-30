@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { eventStore } from '../utils/eventStore';
 import type { Event } from '../types';
 
@@ -19,7 +19,7 @@ export const useEvents = () => {
     return unsubscribe;
   }, []);
 
-  const createEvent = async (eventData: Omit<Event, 'id' | 'createdAt' | 'updatedAt' | 'currentParticipants'>) => {
+  const createEvent = useCallback(async (eventData: Omit<Event, 'id' | 'createdAt' | 'updatedAt' | 'currentParticipants'>) => {
     try {
       const newEvent = eventStore.createEvent(eventData);
       return { success: true, data: newEvent };
@@ -27,9 +27,9 @@ export const useEvents = () => {
       console.error('创建活动失败:', error);
       return { success: false, error: '创建活动失败' };
     }
-  };
+  }, []);
 
-  const updateEvent = async (id: string, eventData: Partial<Omit<Event, 'id' | 'createdAt'>>) => {
+  const updateEvent = useCallback(async (id: string, eventData: Partial<Omit<Event, 'id' | 'createdAt'>>) => {
     try {
       const updatedEvent = eventStore.updateEvent(id, eventData);
       if (updatedEvent) {
@@ -41,9 +41,9 @@ export const useEvents = () => {
       console.error('更新活动失败:', error);
       return { success: false, error: '更新活动失败' };
     }
-  };
+  }, []);
 
-  const deleteEvent = async (id: string) => {
+  const deleteEvent = useCallback(async (id: string) => {
     try {
       const success = eventStore.deleteEvent(id);
       if (success) {
@@ -55,9 +55,9 @@ export const useEvents = () => {
       console.error('删除活动失败:', error);
       return { success: false, error: '删除活动失败' };
     }
-  };
+  }, []);
 
-  const updateEventStatus = async (id: string, status: Event['status']) => {
+  const updateEventStatus = useCallback(async (id: string, status: Event['status']) => {
     try {
       const success = eventStore.updateEventStatus(id, status);
       if (success) {
@@ -69,11 +69,11 @@ export const useEvents = () => {
       console.error('更新活动状态失败:', error);
       return { success: false, error: '更新活动状态失败' };
     }
-  };
+  }, []);
 
-  const getEventById = (id: string): Event | undefined => {
+  const getEventById = useCallback((id: string): Event | undefined => {
     return eventStore.getEventById(id);
-  };
+  }, []);
 
   return {
     events,
