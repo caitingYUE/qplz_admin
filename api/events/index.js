@@ -1,8 +1,27 @@
-import { VercelRequest, VercelResponse } from '@vercel/node';
-import { getDatabase, closeDatabase } from '../_db';
+import { getDatabase, closeDatabase } from '../_db.js';
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req, res) {
+  // 设置CORS头
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  // 处理预检请求
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   try {
+    // 检查环境变量
+    if (!process.env.MONGODB_URI) {
+      return res.status(500).json({
+        success: false,
+        error: 'MongoDB connection not configured',
+        details: 'Please set MONGODB_URI environment variable in Vercel dashboard'
+      });
+    }
+
     const db = await getDatabase();
     
     switch (req.method) {
@@ -18,16 +37,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.status(500).json({ 
       success: false, 
       error: 'Internal server error',
-      details: error instanceof Error ? error.message : String(error)
+      details: error.message || String(error)
     });
   }
 }
 
 // 获取活动列表
-async function getEvents(req: VercelRequest, res: VercelResponse, db: any) {
+async function getEvents(req, res, db) {
   const { status, miniprogram } = req.query;
   
-  let filter: any = {};
+  let filter = {};
   
   // 如果是小程序请求，只返回已发布且同步的活动
   if (miniprogram === 'true') {
@@ -46,7 +65,7 @@ async function getEvents(req: VercelRequest, res: VercelResponse, db: any) {
   
   res.status(200).json({
     success: true,
-    data: events.map((event: any) => ({
+    data: events.map((event) => ({
       ...event,
       id: event._id.toString(),
       _id: undefined
@@ -55,7 +74,7 @@ async function getEvents(req: VercelRequest, res: VercelResponse, db: any) {
 }
 
 // 创建活动
-async function createEvent(req: VercelRequest, res: VercelResponse, db: any) {
+async function createEvent(req, res, db) {
   const eventData = req.body;
   
   // 数据验证
