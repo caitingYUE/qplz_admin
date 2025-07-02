@@ -11,12 +11,18 @@ export default function handler(req, res) {
   }
 
   // 返回测试数据
-  res.status(200).json({
-    success: true,
-    message: 'QPLZ API is working! (JavaScript version)',
-    timestamp: new Date().toISOString(),
-    method: req.method,
-    query: req.query,
-    environment: process.env.NODE_ENV || 'development'
-  });
+  try {
+    res.status(200).json({
+      success: true,
+      message: 'QPLZ API is working!',
+      timestamp: new Date().toISOString(),
+      method: req.method,
+      environment: process.env.NODE_ENV || 'development'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 } 
