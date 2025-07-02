@@ -126,8 +126,8 @@ const EventList: React.FC = () => {
             icon: <PictureOutlined />,
             label: '生成海报',
             onClick: () => {
-              // 直接导航到AI海报设计页面
-              navigate('/ai-poster-design');
+              // 跳转到活动编辑页面，并通过URL参数触发海报生成
+              navigate(`/edit-event/${record.id}?openPoster=true`);
             }
           },
           {

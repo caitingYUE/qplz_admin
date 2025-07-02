@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { Button, Input, Avatar, Spin } from 'antd';
-import { SendOutlined, RobotOutlined, UserOutlined, PlayCircleOutlined, ReloadOutlined } from '@ant-design/icons';
+import { SendOutlined, RobotOutlined, UserOutlined, PlayCircleOutlined, ReloadOutlined, PauseOutlined } from '@ant-design/icons';
 import { message } from 'antd';
 
 const { TextArea } = Input;
@@ -22,6 +22,7 @@ interface ChatInterfaceProps {
   isGenerating: boolean;
   onStartGenerate: () => void;
   onRetryGenerate?: () => void;
+  onPauseGenerate?: () => void;
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({
@@ -31,7 +32,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   onSendMessage,
   isGenerating,
   onStartGenerate,
-  onRetryGenerate
+  onRetryGenerate,
+  onPauseGenerate
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(0);
@@ -61,7 +63,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (userInput.trim() && !isGenerating) {
+      if (isGenerating && onPauseGenerate) {
+        // 生成过程中按Enter暂停
+        onPauseGenerate();
+      } else if (userInput.trim() && !isGenerating) {
+        // 正常发送消息
         onSendMessage();
       }
     }
@@ -141,7 +147,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
     }
   };
 
-          return (
+  return (
     <div style={{ 
       display: 'flex', 
       flexDirection: 'column', 
@@ -297,7 +303,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Spin size="small" />
-                <span style={{ color: '#666' }}>AI正在为您设计海报...</span>
+                <span style={{ color: '#666' }}>AI正在为您设计海报... 可点击暂停按钮中断</span>
               </div>
             </div>
           </div>
@@ -383,12 +389,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             onChange={(e) => onInputChange(e.target.value)}
             onKeyDown={handleKeyPress}
             placeholder={
-              messages.some(msg => msg.posterHtml) 
-                ? "告诉我您想要调整的地方，比如：\n• 改变颜色主题\n• 调整文字大小\n• 更换布局风格\n• 添加装饰元素..."
-                : "填写活动信息后，点击上方按钮开始生成海报"
+              isGenerating 
+                ? "生成过程中，按Enter或点击暂停按钮可中断生成..."
+                : messages.some(msg => msg.posterHtml) 
+                  ? "告诉我您想要调整的地方，比如：\n• 改变颜色主题\n• 调整文字大小\n• 更换布局风格\n• 添加装饰元素..."
+                  : "填写活动信息后，点击上方按钮开始生成海报"
             }
             rows={2}
-            disabled={isGenerating || !messages.some(msg => msg.posterHtml)}
+            disabled={!isGenerating && !messages.some(msg => msg.posterHtml)}
             style={{
               resize: 'none',
               borderRadius: '12px',
@@ -405,27 +413,37 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
             marginTop: '4px',
             textAlign: 'right' 
           }}>
-            {messages.some(msg => msg.posterHtml) ? 'Enter 发送，Shift+Enter 换行' : ''}
+            {isGenerating 
+              ? 'Enter 暂停生成' 
+              : messages.some(msg => msg.posterHtml) 
+                ? 'Enter 发送，Shift+Enter 换行' 
+                : ''
+            }
           </div>
         </div>
         
         <Button
           type="primary"
-          icon={<SendOutlined />}
-          onClick={onSendMessage}
-          disabled={!userInput.trim() || isGenerating || !messages.some(msg => msg.posterHtml)}
+          icon={isGenerating ? <PauseOutlined /> : <SendOutlined />}
+          onClick={isGenerating ? onPauseGenerate : onSendMessage}
+          disabled={!isGenerating && (!userInput.trim() || !messages.some(msg => msg.posterHtml))}
           style={{
             height: '60px', // 匹配输入框最小高度
             width: '55px',
             borderRadius: '12px',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: isGenerating 
+              ? 'linear-gradient(135deg, #ff7875 0%, #ff4d4f 100%)' 
+              : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             border: 'none',
-            boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)',
+            boxShadow: isGenerating 
+              ? '0 2px 8px rgba(255, 77, 79, 0.3)' 
+              : '0 2px 8px rgba(102, 126, 234, 0.3)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: '15px'
           }}
+          title={isGenerating ? '暂停生成' : '发送消息'}
         />
       </div>
     </div>

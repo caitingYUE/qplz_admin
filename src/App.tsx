@@ -3,7 +3,6 @@ import { Layout, Menu, theme, Button } from 'antd';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import {
   CalendarOutlined,
-  PictureOutlined,
   UnorderedListOutlined,
   UserOutlined,
   HomeOutlined,
@@ -12,8 +11,6 @@ import {
 } from '@ant-design/icons';
 import EventList from './components/EventList';
 import EventForm from './components/EventForm';
-
-import AIDesignStandalone from './components/AIDesignStandalone';
 import RegistrationList from './components/RegistrationList';
 import Dashboard from './components/Dashboard';
 
@@ -43,16 +40,6 @@ const AppContent: React.FC = () => {
       icon: <CalendarOutlined />,
       label: '创建活动',
     },
-    {
-      key: '/ai-poster-design',
-      icon: <PictureOutlined />,
-      label: 'AI海报设计',
-      style: { 
-        background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
-        fontWeight: 'bold'
-      }
-    },
-
     {
       key: '/registrations',
       icon: <UserOutlined />,
@@ -147,7 +134,6 @@ const AppContent: React.FC = () => {
             <Route path="/events" element={<EventList />} />
             <Route path="/create-event" element={<EventForm />} />
             <Route path="/edit-event/:id" element={<EventForm />} />
-            <Route path="/ai-poster-design" element={<AIDesignStandalone />} />
             <Route path="/registrations" element={<RegistrationList />} />
           </Routes>
         </Content>

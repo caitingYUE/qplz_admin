@@ -15,7 +15,7 @@ import {
   Upload
 } from 'antd';
 import { PlusOutlined, MinusCircleOutlined, PictureOutlined, UploadOutlined } from '@ant-design/icons';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import dayjs from 'dayjs';
 import type { Event } from '../types';
 import { useEvents } from '../hooks/useEvents';
@@ -29,6 +29,7 @@ const { RangePicker } = DatePicker;
 const EventForm: React.FC = () => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams();
   const [loading, setLoading] = useState(false);
   const [aiDialogVisible, setAiDialogVisible] = useState(false);
@@ -91,12 +92,21 @@ const EventForm: React.FC = () => {
           fee: event.fee,
           guests: event.guests || [],
         });
+
+        // 检查是否从活动列表的"生成海报"按钮进入
+        const searchParams = new URLSearchParams(location.search);
+        if (searchParams.get('openPoster') === 'true') {
+          // 延迟一下让表单数据加载完成
+          setTimeout(() => {
+            setAiDialogVisible(true);
+          }, 100);
+        }
       } else {
         message.error('活动不存在');
         navigate('/events');
       }
     }
-  }, [isEditing, form, id, getEventById, navigate]);
+  }, [isEditing, form, id, getEventById, navigate, location.search]);
 
   const onFinish = async (values: any) => {
     setLoading(true);

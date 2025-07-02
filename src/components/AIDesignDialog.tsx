@@ -151,8 +151,9 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
   // 对话状态
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [currentPosterHtml, setCurrentPosterHtml] = useState<string>('');
+  const [currentPosterHtml, setCurrentPosterHtml] = useState<string | null>(null);
   const [userInput, setUserInput] = useState('');
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
   
   // 邀请函特殊状态
   const [batchGeneratorVisible, setBatchGeneratorVisible] = useState(false);
@@ -454,15 +455,19 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
 
   // 生成海报
   const startGeneratePoster = async () => {
-    if (!eventData.name) {
-      message.error('请先设置活动名称');
-      return;
-    }
+    if (isGenerating) return;
+
+    // 创建新的AbortController
+    const controller = new AbortController();
+    setAbortController(controller);
     
     setIsGenerating(true);
     
     try {
       const posterData = buildPosterData();
+      
+      // 根据海报类型确定API接口的类型参数
+      const apiPosterType = selectedPosterType === 'vertical' || selectedPosterType === 'xiaohongshu' ? 'general' : selectedPosterType;
       
       const userMessage: ChatMessage = {
         id: `user-${Date.now()}`,
@@ -474,8 +479,6 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
       const updatedMessages = [...chatMessages, userMessage];
       setChatMessages(updatedMessages);
       setUserInput('');
-      
-      const apiPosterType = selectedPosterType === 'vertical' || selectedPosterType === 'xiaohongshu' ? 'general' : selectedPosterType;
       
       // 准备嘉宾详细信息 - 添加容错处理
       let guestDetails: Array<{name: string; title: string; bio?: string; avatar?: string}> = [];
@@ -530,15 +533,12 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
       );
       
       if (result.success && result.html) {
-        // 应用用户配置的设计素材
         const processedHtml = applyDesignAssetsToHtml(result.html, designAssets);
-        
-        console.log('🎨 应用用户配置后的HTML长度:', processedHtml.length);
         
         const aiMessage: ChatMessage = {
           id: `ai-${Date.now()}`,
           type: 'ai',
-          content: '✨ 海报已生成！您可以在左侧预览效果，有任何调整需求请告诉我。',
+          content: '✨ 太棒了！我为您设计了一张精美的海报。您可以继续与我对话来调整设计。',
           timestamp: Date.now(),
           posterHtml: processedHtml,
           posterType: selectedPosterType
@@ -556,50 +556,16 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
     } catch (error: any) {
       console.error('生成海报失败:', error);
       
-      // 构建详细的错误信息
-      let errorDetails = '';
-      if (error.message.includes('guests')) {
-        errorDetails = `
-        
-📋 错误详情：
-• 错误类型：嘉宾数据处理异常
-• 错误信息：${error.message}
-• 嘉宾数据类型：${typeof eventData.guests}
-• 嘉宾数据内容：${JSON.stringify(eventData.guests, null, 2)}
-• 解决建议：请检查嘉宾信息格式是否正确`;
-      } else if (error.message.includes('network') || error.message.includes('fetch')) {
-        errorDetails = `
-        
-📋 错误详情：
-• 错误类型：网络连接问题
-• 错误信息：${error.message}
-• 解决建议：请检查网络连接后重试`;
-      } else if (error.message.includes('API')) {
-        errorDetails = `
-        
-📋 错误详情：
-• 错误类型：API调用失败
-• 错误信息：${error.message}
-• 解决建议：请稍后重试或联系技术支持`;
-      } else {
-        errorDetails = `
-        
-📋 错误详情：
-• 错误类型：未知错误
-• 错误信息：${error.message}
-• 调用栈：${error.stack || '无'}
-• 解决建议：请尝试刷新页面或重新生成`;
+      // 如果是用户主动取消，不显示错误
+      if (error.name === 'AbortError') {
+        console.log('用户取消了海报生成');
+        return;
       }
       
       const errorMessage: ChatMessage = {
         id: `ai-error-${Date.now()}`,
         type: 'ai',
-        content: `❌ 生成海报时遇到问题：${error.message || '未知错误'}${errorDetails}
-        
-🔄 您可以：
-1. 点击右侧刷新按钮重新生成
-2. 检查活动信息是否完整
-3. 尝试简化描述后重新生成`,
+        content: `❌ 抱歉，生成海报时遇到了问题：${error.message || '未知错误'}。请重试或检查网络连接。`,
         timestamp: Date.now()
       };
       
@@ -610,6 +576,7 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
       message.error(`生成失败: ${error.message || '未知错误'}`);
     } finally {
       setIsGenerating(false);
+      setAbortController(null);
     }
   };
 
@@ -655,6 +622,10 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
       await startGeneratePoster();
       return;
     }
+    
+    // 创建新的AbortController
+    const controller = new AbortController();
+    setAbortController(controller);
     
     setIsGenerating(true);
     
@@ -753,6 +724,12 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
     } catch (error: any) {
       console.error('修改海报失败:', error);
       
+      // 如果是用户主动取消，不显示错误
+      if (error.name === 'AbortError') {
+        console.log('用户取消了海报修改');
+        return;
+      }
+      
       const errorMessage: ChatMessage = {
         id: `ai-error-${Date.now()}`,
         type: 'ai',
@@ -767,6 +744,7 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
       message.error(`修改失败: ${error.message || '未知错误'}`);
     } finally {
       setIsGenerating(false);
+      setAbortController(null);
     }
   };
 
@@ -856,6 +834,27 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
     link.click();
     
     message.success('HTML源码下载成功！');
+  };
+
+  // 暂停生成
+  const pauseGenerate = () => {
+    if (abortController) {
+      abortController.abort();
+      setAbortController(null);
+    }
+    setIsGenerating(false);
+    
+    // 添加暂停提示消息
+    const pauseMessage: ChatMessage = {
+      id: `system-pause-${Date.now()}`,
+      type: 'system',
+      content: '📢 海报生成已暂停。您可以点击右侧的刷新按钮重新生成，或继续与AI对话调整海报。',
+      timestamp: Date.now()
+    };
+    
+    const updatedMessages = [...chatMessages, pauseMessage];
+    setChatMessages(updatedMessages);
+    saveChatHistory(updatedMessages);
   };
 
   // 全屏设计模式
@@ -1040,6 +1039,7 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
           isGenerating={isGenerating}
           onStartGenerate={startGeneratePoster}
           onRetryGenerate={startGeneratePoster}
+          onPauseGenerate={pauseGenerate}
         />
       </div>
     </div>
@@ -1131,7 +1131,7 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
       <InvitationBatchGenerator
         visible={batchGeneratorVisible}
         onClose={() => setBatchGeneratorVisible(false)}
-        baseHtmlTemplate={currentPosterHtml}
+        baseHtmlTemplate={currentPosterHtml || ''}
         eventName={eventData.name || '活动'}
         posterDimensions={POSTER_TYPES[selectedPosterType]}
       />
