@@ -18,10 +18,5 @@
         }
       ]
     }
-  ],
-  "functions": {
-    "app/**/*.tsx": {
-      "includeFiles": "public/**"
-    }
-  }
+  ]
 } 
