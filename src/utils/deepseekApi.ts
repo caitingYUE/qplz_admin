@@ -21,7 +21,7 @@ const POSTER_PROMPTS = {
 {brandAssets}
 
 设计要求：
-1. 尺寸：1242×1660px（竖图格式）
+1. 尺寸：800×1200px（竖图格式）
 2. 风格：现代简约，高级感，符合女性社区特色
 3. 配色：优先使用提供的品牌色彩，如果没有则可以使用渐变色、主题色#b01c02或其他优雅配色
 4. 布局：标题突出，信息层次清晰，视觉效果佳
@@ -37,7 +37,7 @@ const POSTER_PROMPTS = {
 - 副标题：{subtitle}
 - 时间：{time}
 - 地点：{location}
-- 费用：{fee}
+- 嘉宾：{guests}
 
 {guestDetails}
 
@@ -62,14 +62,13 @@ const POSTER_PROMPTS = {
 - 邀请内容：{invitationText}
 - 时间：{time}
 - 地点：{location}
-- 费用：{fee}
 
 {guestDetails}
 
 {brandAssets}
 
 设计要求：
-1. 尺寸：1242×1660px（竖版邀请函格式）
+1. 尺寸：800×1200px（竖版邀请函格式）
 2. 风格：正式典雅，体现尊重感和仪式感
 3. 配色：优先使用提供的品牌色彩，如果没有则使用优雅庄重的色调
 4. 布局："邀请函"标题突出，内容层次清晰
@@ -86,9 +85,7 @@ const POSTER_PROMPTS = {
 - 时间：{time}
 - 地点：{location}
 - 描述：{description}
-- 费用：{fee}
 - 嘉宾：{guests}
-- 参与人数：{maxParticipants}
 
 {guestDetails}
 
@@ -210,13 +207,13 @@ export async function generatePosterWithDeepSeek(
       // Logo
       if (designAssets.logos && designAssets.logos.length > 0) {
         brandAssetsText += `Logo资源：${designAssets.logos.length}个logo可用\n`;
-        assetUsageInstructions += `在海报顶部或底部预留logo位置，使用以下占位符：<div class="logo-placeholder" style="width: 120px; height: 40px; background: #f0f0f0; border: 2px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #999;">LOGO位置</div>；`;
+        assetUsageInstructions += `在海报顶部显著位置预留logo位置，使用以下占位符：<div class="logo-placeholder" style="width: 200px; height: 80px; background: #f0f0f0; border: 2px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #999;">LOGO位置</div>。Logo应该足够大，位置显眼，便于品牌识别；`;
       }
       
       // 二维码
       if (designAssets.qrCodes && designAssets.qrCodes.length > 0) {
         brandAssetsText += `二维码：${designAssets.qrCodes.length}个二维码可用\n`;
-        assetUsageInstructions += `在海报右下角或底部居中预留二维码位置，使用以下占位符：<div class="qrcode-placeholder" style="width: 100px; height: 100px; background: #f8f8f8; border: 2px dashed #ddd; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #999; flex-direction: column;"><div>扫码</div><div>参与</div></div>；`;
+        assetUsageInstructions += `在海报右下角显著位置预留二维码位置，使用以下占位符：<div class="qrcode-placeholder" style="width: 140px; height: 140px; background: #f8f8f8; border: 2px dashed #ddd; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #999; flex-direction: column; margin: 16px;"><div style="font-weight: bold;">扫码</div><div>参与活动</div></div>。二维码应该足够大（至少140x140px），位置显眼，便于扫描；`;
       }
       
       // 品牌字体
@@ -425,9 +422,9 @@ function validateHtmlForPosterType(htmlContent: string, posterType: 'general' | 
   
   // 检查尺寸信息
   const expectedDimensions = {
-    general: { width: 1242, height: 1660 },
+    general: { width: 800, height: 1200 },
     wechat: { width: 900, height: 383 },
-    invitation: { width: 1242, height: 1660 },
+    invitation: { width: 800, height: 1200 },
     activity: { width: 1080, height: 640 }
   };
   
@@ -521,7 +518,7 @@ export function applyDesignAssetsToHtml(
   try {
     // 1. 替换Logo占位符
     if (designAssets.logos && designAssets.logos.length > 0) {
-      const logoHtml = `<img src="${designAssets.logos[0].url}" alt="${designAssets.logos[0].name}" style="width: 120px; height: 40px; object-fit: contain;">`;
+      const logoHtml = `<img src="${designAssets.logos[0].url}" alt="${designAssets.logos[0].name}" style="width: 200px; height: 80px; object-fit: contain;">`;
       processedHtml = processedHtml.replace(
         /<div class="logo-placeholder"[^>]*>.*?<\/div>/gi,
         logoHtml
@@ -531,9 +528,9 @@ export function applyDesignAssetsToHtml(
     // 2. 替换二维码占位符
     if (designAssets.qrCodes && designAssets.qrCodes.length > 0) {
       const qrCodeHtml = `
-        <div style="text-align: center;">
-          <img src="${designAssets.qrCodes[0].url}" alt="二维码" style="width: 100px; height: 100px; object-fit: contain;">
-          <div style="font-size: 12px; color: #666; margin-top: 4px;">扫码参与</div>
+        <div style="text-align: center; margin: 16px;">
+          <img src="${designAssets.qrCodes[0].url}" alt="二维码" style="width: 140px; height: 140px; object-fit: contain; border-radius: 8px;">
+          <div style="font-size: 14px; color: #666; margin-top: 8px; font-weight: bold;">扫码参与活动</div>
         </div>
       `;
       processedHtml = processedHtml.replace(

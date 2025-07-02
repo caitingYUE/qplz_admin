@@ -28,11 +28,11 @@ export function parseHtmlToPosterElements(htmlCode: string, posterType?: 'genera
   const elements: PosterElement[] = [];
   
   // 根据海报类型设置默认尺寸
-  let defaultDimensions = { width: 1242, height: 1660 };
+  let defaultDimensions = { width: 800, height: 1200 };
   if (posterType === 'wechat') {
     defaultDimensions = { width: 900, height: 383 };
   } else if (posterType === 'invitation') {
-    defaultDimensions = { width: 1242, height: 1660 };
+    defaultDimensions = { width: 800, height: 1200 };
   }
   
   let canvasWidth = defaultDimensions.width;
@@ -75,9 +75,9 @@ export function parseHtmlToPosterElements(htmlCode: string, posterType?: 'genera
   // 验证尺寸是否符合预期
   if (posterType) {
     const expectedDimensions = {
-      general: { width: 1242, height: 1660 },
+      general: { width: 800, height: 1200 },
       wechat: { width: 900, height: 383 },
-      invitation: { width: 1242, height: 1660 }
+      invitation: { width: 800, height: 1200 }
     };
     const expected = expectedDimensions[posterType];
     if (Math.abs(canvasWidth - expected.width) > 50 || Math.abs(canvasHeight - expected.height) > 50) {
@@ -119,8 +119,8 @@ function parseDeepSeekHtml(doc: Document, _posterType?: 'general' | 'wechat' | '
 
   // 从.poster样式中提取画布信息
   const posterStyle = cssRules['.poster'] || {};
-  const canvasWidth = extractPixelValue(posterStyle.width) || 1242;
-  const canvasHeight = extractPixelValue(posterStyle.height) || 1660;
+  const canvasWidth = extractPixelValue(posterStyle.width) || 800;
+  const canvasHeight = extractPixelValue(posterStyle.height) || 1200;
   const backgroundColor = posterStyle.background || posterStyle.backgroundColor || '#ffffff';
   
   console.log('📐 画布尺寸:', `${canvasWidth}×${canvasHeight}`);

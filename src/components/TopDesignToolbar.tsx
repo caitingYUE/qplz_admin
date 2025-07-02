@@ -9,6 +9,7 @@ import {
   ReloadOutlined,
   DownOutlined
 } from '@ant-design/icons';
+import type { DesignAssets } from '../types';
 
 // 字段配置定义
 interface PosterField {
@@ -30,20 +31,6 @@ const POSTER_FIELDS: PosterField[] = [
   { key: 'qrcode', label: '二维码', required: false, description: '报名二维码' },
   { key: 'logo', label: 'Logo', required: false, description: '品牌标识' }
 ];
-
-interface DesignAssets {
-  referenceImages: Array<{ id: string; url: string; name: string }>;
-  logos: Array<{ id: string; url: string; name: string }>;
-  qrCodes: Array<{ id: string; url: string; name: string }>;
-  brandColors: string[];
-  brandFonts: Array<{ id: string; name: string; url: string }>;
-  // 服务器配置相关
-  apiMode: 'local' | 'remote';
-  serverAddress: string;
-  serverPort: string;
-  isServerConnected: boolean;
-  isMiniProgramIntegrated: boolean;
-}
 
 interface TopDesignToolbarProps {
   selectedPosterType: string;
@@ -394,9 +381,9 @@ const TopDesignToolbar: React.FC<TopDesignToolbarProps> = ({
               icon={<CodeOutlined />}
               onClick={onDownloadHtml}
               style={{ color: 'rgba(255, 255, 255, 0.8)', border: 'none' }}
-              title="下载HTML源码"
+              title="编辑HTML代码"
             >
-              HTML
+              编辑代码
             </Button>
           </>
         )}

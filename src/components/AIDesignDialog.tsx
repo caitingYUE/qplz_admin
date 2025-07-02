@@ -11,6 +11,7 @@ import ConfigPanel from './ConfigPanel';
 import ResizablePanes from './ResizablePanes';
 import DesignToolbar from './DesignToolbar';
 import PosterUpdateNotification from './PosterUpdateNotification';
+import HtmlEditor from './HtmlEditor';
 
 import { generatePosterWithDeepSeek, applyDesignAssetsToHtml } from '../utils/deepseekApi';
 import { storageManager, startStorageMonitoring } from '../utils/storageManager';
@@ -105,9 +106,17 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
       if (savedAssets) {
         const parsed = JSON.parse(savedAssets);
         
-        // 确保新的服务器配置属性存在
+        // 确保新的数据结构存在
         const updatedAssets = {
           referenceImages: parsed.referenceImages || [],
+          // 新增：按海报类型分类的参考图片（如果不存在则初始化）
+          referenceImagesByType: parsed.referenceImagesByType || {
+            vertical: [],
+            invitation: [],
+            wechat: [],
+            xiaohongshu: [],
+            activity: []
+          },
           logos: parsed.logos || [],
           qrCodes: parsed.qrCodes || [],
           brandColors: parsed.brandColors || [],
@@ -130,6 +139,14 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
     // 如果没有保存的资源，使用空配置（用户可以自己添加需要的颜色）
     const emptyAssets: DesignAssets = {
       referenceImages: [],
+      // 新增：按海报类型分类的参考图片初始化
+      referenceImagesByType: {
+        vertical: [],
+        invitation: [],
+        wechat: [],
+        xiaohongshu: [],
+        activity: []
+      },
       logos: [],
       qrCodes: [],
       brandColors: [], // 初始为空，用户可以自己添加
@@ -151,6 +168,7 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
   // 对话状态
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
   const [currentPosterHtml, setCurrentPosterHtml] = useState<string | null>(null);
   const [userInput, setUserInput] = useState('');
   const [abortController, setAbortController] = useState<AbortController | null>(null);
@@ -165,6 +183,9 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
   const [configPanelVisible, setConfigPanelVisible] = useState(false);
   const [hasConfigChanged, setHasConfigChanged] = useState(false);
   const [showConfigChangeNotification, setShowConfigChangeNotification] = useState(false);
+  
+  // HTML编辑器状态
+  const [htmlEditorVisible, setHtmlEditorVisible] = useState(false);
   
   // 从localStorage加载上次的字段配置
   const getInitialSelectedFields = (): string[] => {
@@ -453,6 +474,29 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
     saveChatHistory([welcomeMessage]);
   };
 
+  // 模拟进度更新函数
+  const simulateProgress = () => {
+    setGenerationProgress(0);
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += Math.random() * 10 + 5; // 每次增加5-15%
+      if (progress >= 95) {
+        progress = 95; // 最多到95%，等待实际完成
+        clearInterval(interval);
+      }
+      setGenerationProgress(Math.min(progress, 95));
+    }, 500);
+    return interval;
+  };
+
+  // 生成海报完成时的进度处理
+  const completeProgress = () => {
+    setGenerationProgress(100);
+    setTimeout(() => {
+      setGenerationProgress(0);
+    }, 1000);
+  };
+
   // 生成海报
   const startGeneratePoster = async () => {
     if (isGenerating) return;
@@ -462,6 +506,9 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
     setAbortController(controller);
     
     setIsGenerating(true);
+    
+    // 开始模拟进度
+    const progressInterval = simulateProgress();
     
     try {
       const posterData = buildPosterData();
@@ -517,7 +564,7 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
           inviter: posterData.inviter,
           invitationText: posterData.greeting
         },
-        posterData.referenceImages?.map(img => img.url) || [],
+        getCurrentTypeReferenceImageUrls(),
         posterData.userRequirements,
         // 传递设计素材
         {
@@ -550,11 +597,17 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
         
         saveChatHistory(finalMessages);
         message.success('海报生成成功！');
+        // 完成进度条
+        clearInterval(progressInterval);
+        completeProgress();
       } else {
         throw new Error(result.error || '生成失败');
       }
     } catch (error: any) {
       console.error('生成海报失败:', error);
+      
+      // 清理进度条
+      clearInterval(progressInterval);
       
       // 如果是用户主动取消，不显示错误
       if (error.name === 'AbortError') {
@@ -580,8 +633,29 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
     }
   };
 
+  // 获取当前海报类型对应的参考图片URL
+  const getCurrentTypeReferenceImageUrls = (): string[] => {
+    const currentTypeImages = designAssets.referenceImagesByType[selectedPosterType as keyof typeof designAssets.referenceImagesByType] || [];
+    const urls = currentTypeImages.map(img => img.url);
+    
+    // 如果当前类型没有参考图片，回退到使用统一的参考图片作为兼容
+    if (urls.length === 0) {
+      const fallbackUrls = designAssets.referenceImages?.map(img => img.url) || [];
+      if (fallbackUrls.length > 0) {
+        console.log(`📸 ${selectedPosterType}类型暂无专用参考图片，使用通用参考图片:`, fallbackUrls.length, '张');
+      }
+      return fallbackUrls;
+    }
+    
+    console.log(`📸 使用${selectedPosterType}类型专用参考图片:`, urls.length, '张');
+    return urls;
+  };
+
   // 构建海报数据
   const buildPosterData = () => {
+    // 根据当前海报类型获取对应的参考图片
+    const currentTypeReferenceImages = designAssets.referenceImagesByType[selectedPosterType as keyof typeof designAssets.referenceImagesByType] || [];
+    
     return {
       title: eventData.name || '',
       subtitle: eventData.subtitle || '',
@@ -598,7 +672,10 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
       inviter: '前排落座女性社区',
       greeting: '诚邀您参加',
       
-      referenceImages: designAssets.referenceImages,
+      // 使用当前海报类型对应的参考图片
+      referenceImages: currentTypeReferenceImages,
+      // 保持向后兼容，同时保留旧的统一参考图片
+      legacyReferenceImages: designAssets.referenceImages,
       logos: designAssets.logos,
       qrCodes: designAssets.qrCodes,
       brandColors: designAssets.brandColors,
@@ -628,6 +705,9 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
     setAbortController(controller);
     
     setIsGenerating(true);
+    
+    // 开始模拟进度
+    const progressInterval = simulateProgress();
     
     try {
       const userMessage: ChatMessage = {
@@ -682,7 +762,7 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
           inviter: posterData.inviter,
           invitationText: posterData.greeting
         },
-        posterData.referenceImages?.map(img => img.url) || [],
+        getCurrentTypeReferenceImageUrls(),
         userInput,
         // 传递设计素材
         {
@@ -718,11 +798,17 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
         
         saveChatHistory(finalMessages);
         message.success('海报更新成功！');
+        // 完成进度条
+        clearInterval(progressInterval);
+        completeProgress();
       } else {
         throw new Error(result.error || '修改失败');
       }
     } catch (error: any) {
       console.error('修改海报失败:', error);
+      
+      // 清理进度条
+      clearInterval(progressInterval);
       
       // 如果是用户主动取消，不显示错误
       if (error.name === 'AbortError') {
@@ -747,6 +833,37 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
       setAbortController(null);
     }
   };
+
+  // 打开HTML编辑器
+  const openHtmlEditor = () => {
+    if (!currentPosterHtml) {
+      message.error('没有可编辑的HTML内容');
+      return;
+    }
+    setHtmlEditorVisible(true);
+  };
+
+  // 处理HTML更新
+  const handleHtmlUpdate = (newHtml: string) => {
+    setCurrentPosterHtml(newHtml);
+    
+    // 添加系统消息记录HTML更新
+    const updateMessage: ChatMessage = {
+      id: `system-html-update-${Date.now()}`,
+      type: 'system',
+      content: '✏️ HTML代码已更新，海报预览已刷新',
+      timestamp: Date.now(),
+      posterHtml: newHtml,
+      posterType: selectedPosterType
+    };
+    
+    const updatedMessages = [...chatMessages, updateMessage];
+    setChatMessages(updatedMessages);
+    saveChatHistory(updatedMessages);
+  };
+
+  // 保持原有的downloadHtml函数名，但改为调用编辑器
+  const downloadHtml = openHtmlEditor;
 
   // 下载海报
   const downloadPoster = async () => {
@@ -818,22 +935,6 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
         key: 'download' 
       });
     }
-  };
-
-  // 下载HTML源码
-  const downloadHtml = () => {
-    if (!currentPosterHtml) {
-      message.error('没有可下载的HTML内容');
-      return;
-    }
-    
-    const blob = new Blob([currentPosterHtml], { type: 'text/html;charset=utf-8' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `${eventData.name || '海报'}_${POSTER_TYPES[selectedPosterType].name}_${new Date().getTime()}.html`;
-    link.click();
-    
-    message.success('HTML源码下载成功！');
   };
 
   // 暂停生成
@@ -1040,6 +1141,9 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
           onStartGenerate={startGeneratePoster}
           onRetryGenerate={startGeneratePoster}
           onPauseGenerate={pauseGenerate}
+          generationProgress={generationProgress}
+          selectedPosterType={selectedPosterType}
+          onBatchGenerate={() => setBatchGeneratorVisible(true)}
         />
       </div>
     </div>
@@ -1151,6 +1255,16 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
         designAssets={designAssets}
         onAssetsChange={handleAssetsChange}
         onConfigChange={handleConfigChange}
+      />
+
+      {/* HTML编辑器 */}
+      <HtmlEditor
+        visible={htmlEditorVisible}
+        onClose={() => setHtmlEditorVisible(false)}
+        htmlContent={currentPosterHtml || ''}
+        onUpdate={handleHtmlUpdate}
+        posterName={eventData.name || '海报'}
+        posterType={POSTER_TYPES[selectedPosterType].name}
       />
     </div>
   );

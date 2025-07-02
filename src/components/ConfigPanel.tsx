@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Tabs, Button, Upload, Select, ColorPicker, message, Input, Alert, Space, Card, Divider, Tag, Switch } from 'antd';
-import { CloseOutlined, UploadOutlined, PlusOutlined, PictureOutlined, QrcodeOutlined, FontSizeOutlined, DeleteOutlined, KeyOutlined, CheckCircleOutlined, ExclamationCircleOutlined, CloudOutlined, MobileOutlined, LinkOutlined, SyncOutlined } from '@ant-design/icons';
+import { Tabs, Button, Upload, Select, ColorPicker, message, Input, Alert, Space, Card, Divider, Tag, Switch, Typography, Modal, Checkbox } from 'antd';
+import { CloseOutlined, UploadOutlined, PlusOutlined, PictureOutlined, QrcodeOutlined, FontSizeOutlined, DeleteOutlined, KeyOutlined, CheckCircleOutlined, ExclamationCircleOutlined, CloudOutlined, MobileOutlined, LinkOutlined, SyncOutlined, SettingOutlined, BgColorsOutlined, EyeInvisibleOutlined, EyeTwoTone } from '@ant-design/icons';
 import PosterTypeSelector from './PosterTypeSelector';
 import type { DesignAssets, ApiMode } from '../types';
 import { allBuiltinFonts, getFontsByCategory, loadFont } from '../utils/builtinFonts';
 import { hasValidApiKey, setApiKey, getApiKey, removeApiKey, validateApiKey } from '../utils/deepseekApi';
 import { apiAdapter, ApiUtils } from '../utils/apiAdapter';
+
+const { Title, Text } = Typography;
+const { TextArea } = Input;
 
 interface ConfigPanelProps {
   visible: boolean;
@@ -16,6 +19,15 @@ interface ConfigPanelProps {
   onAssetsChange: (assets: DesignAssets) => void;
   onConfigChange?: () => void; // 新增：配置变更回调
 }
+
+// 海报类型映射
+const POSTER_TYPE_NAMES = {
+  vertical: '竖图海报',
+  invitation: '邀请函',
+  wechat: '微信海报',
+  xiaohongshu: '小红书海报',
+  activity: '活动海报'
+} as const;
 
 const ConfigPanel: React.FC<ConfigPanelProps> = ({
   visible,
@@ -36,6 +48,9 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [isApiKeyValid, setIsApiKeyValid] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
+
+  // 参考图片类型选择状态
+  const [referenceImageType, setReferenceImageType] = useState<string>(selectedPosterType);
 
   // 同步颜色状态
   useEffect(() => {
@@ -275,6 +290,53 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
     notifyConfigChange();
   };
 
+  // 按海报类型上传参考图片
+  const handleReferenceImageUpload = (file: File, posterType: string) => {
+    console.log('📤 上传参考图片:', { fileName: file.name, posterType });
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const newAsset = {
+        id: `ref-${posterType}-${Date.now()}`,
+        url: e.target?.result as string,
+        name: file.name,
+        posterType: posterType
+      };
+      
+      const updatedAssets = {
+        ...designAssets,
+        referenceImagesByType: {
+          ...designAssets.referenceImagesByType,
+          [posterType]: [...(designAssets.referenceImagesByType[posterType as keyof typeof designAssets.referenceImagesByType] || []), newAsset]
+        }
+      };
+      
+      onAssetsChange(updatedAssets);
+      saveDesignAssetsToStorage(updatedAssets);
+      message.success(`${POSTER_TYPE_NAMES[posterType as keyof typeof POSTER_TYPE_NAMES]}参考图片上传成功`);
+      notifyConfigChange();
+    };
+    
+    reader.readAsDataURL(file);
+    return false;
+  };
+
+  // 删除指定类型的参考图片
+  const removeReferenceImage = (id: string, posterType: string) => {
+    const updatedAssets = {
+      ...designAssets,
+      referenceImagesByType: {
+        ...designAssets.referenceImagesByType,
+        [posterType]: (designAssets.referenceImagesByType[posterType as keyof typeof designAssets.referenceImagesByType] || []).filter((asset: any) => asset.id !== id)
+      }
+    };
+    
+    onAssetsChange(updatedAssets);
+    saveDesignAssetsToStorage(updatedAssets);
+    message.success('参考图片删除成功');
+    notifyConfigChange();
+  };
+
   const tabItems = [
     {
       key: 'posterType',
@@ -293,14 +355,38 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
       label: '素材管理',
       children: (
         <div style={{ padding: '20px 0' }}>
-          {/* 参考图片 */}
+          {/* 参考图片 - 按海报类型分类 */}
           <div style={{ marginBottom: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
-              <PictureOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
-              <span style={{ fontWeight: '500' }}>参考图片</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <PictureOutlined style={{ marginRight: '8px', color: '#1890ff' }} />
+                <span style={{ fontWeight: '500' }}>参考图片</span>
+              </div>
+              <Text type="secondary" style={{ fontSize: '12px' }}>
+                为不同海报类型上传专用参考图片
+              </Text>
             </div>
+            
+            {/* 海报类型选择器 */}
+            <div style={{ marginBottom: '12px' }}>
+              <Text strong style={{ marginRight: '8px' }}>选择海报类型：</Text>
+              <Select
+                value={referenceImageType}
+                onChange={setReferenceImageType}
+                style={{ width: 200 }}
+                size="small"
+              >
+                {Object.entries(POSTER_TYPE_NAMES).map(([key, label]) => (
+                  <Select.Option key={key} value={key}>
+                    {label}
+                  </Select.Option>
+                ))}
+              </Select>
+            </div>
+            
+            {/* 当前类型的参考图片 */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
-              {designAssets.referenceImages.map((img: any) => (
+              {(designAssets.referenceImagesByType[referenceImageType as keyof typeof designAssets.referenceImagesByType] || []).map((img: any) => (
                 <div key={img.id} style={{ position: 'relative' }}>
                   <img 
                     src={img.url} 
@@ -318,7 +404,7 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
                     size="small"
                     danger
                     icon={<CloseOutlined />}
-                    onClick={() => removeAsset(img.id, 'referenceImages')}
+                    onClick={() => removeReferenceImage(img.id, referenceImageType)}
                     style={{
                       position: 'absolute',
                       top: '-8px',
@@ -334,16 +420,43 @@ const ConfigPanel: React.FC<ConfigPanelProps> = ({
                   />
                 </div>
               ))}
+              {(designAssets.referenceImagesByType[referenceImageType as keyof typeof designAssets.referenceImagesByType] || []).length === 0 && (
+                <div style={{ 
+                  width: '60px', 
+                  height: '60px', 
+                  border: '2px dashed #d9d9d9', 
+                  borderRadius: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#999',
+                  fontSize: '12px'
+                }}>
+                  暂无图片
+                </div>
+              )}
             </div>
+            
             <Upload
               accept="image/*"
-              beforeUpload={(file) => handleFileUpload(file, 'referenceImages')}
+              beforeUpload={(file) => handleReferenceImageUpload(file, referenceImageType)}
               showUploadList={false}
             >
               <Button icon={<UploadOutlined />} size="small">
-                上传参考图片
+                为{POSTER_TYPE_NAMES[referenceImageType as keyof typeof POSTER_TYPE_NAMES]}上传参考图片
               </Button>
             </Upload>
+            
+            {/* 显示各类型图片统计 */}
+            <div style={{ marginTop: '12px', fontSize: '12px', color: '#999' }}>
+              <Text type="secondary">
+                各类型参考图片数量：
+                {Object.entries(POSTER_TYPE_NAMES).map(([key, label]) => {
+                  const count = (designAssets.referenceImagesByType[key as keyof typeof designAssets.referenceImagesByType] || []).length;
+                  return count > 0 ? ` ${label}(${count})` : '';
+                }).filter(Boolean).join('、') || ' 暂无'}
+              </Text>
+            </div>
           </div>
 
           {/* LOGO */}

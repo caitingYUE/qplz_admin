@@ -104,7 +104,16 @@ export type ApiMode = 'local' | 'remote';
 
 // 设计资源管理接口
 export interface DesignAssets {
+  // 原有的统一参考图片存储（保持向后兼容）
   referenceImages: Array<{ id: string; url: string; name: string; size?: number }>;
+  // 新增：按海报类型分类的参考图片
+  referenceImagesByType: {
+    vertical: Array<{ id: string; url: string; name: string; size?: number; posterType: string }>;
+    invitation: Array<{ id: string; url: string; name: string; size?: number; posterType: string }>;
+    wechat: Array<{ id: string; url: string; name: string; size?: number; posterType: string }>;
+    xiaohongshu: Array<{ id: string; url: string; name: string; size?: number; posterType: string }>;
+    activity: Array<{ id: string; url: string; name: string; size?: number; posterType: string }>;
+  };
   logos: Array<{ id: string; url: string; name: string; size?: number }>;
   qrCodes: Array<{ id: string; url: string; name: string; size?: number }>;
   brandColors: string[];

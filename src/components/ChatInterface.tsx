@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { Button, Input, Avatar, Spin } from 'antd';
+import { Button, Input, Avatar, Spin, Progress } from 'antd';
 import { SendOutlined, RobotOutlined, UserOutlined, PlayCircleOutlined, ReloadOutlined, PauseOutlined } from '@ant-design/icons';
 import { message } from 'antd';
 
@@ -23,6 +23,9 @@ interface ChatInterfaceProps {
   onStartGenerate: () => void;
   onRetryGenerate?: () => void;
   onPauseGenerate?: () => void;
+  generationProgress?: number; // 生成进度 0-100
+  selectedPosterType?: string; // 海报类型
+  onBatchGenerate?: () => void; // 批量生成邀请函
 }
 
 const ChatInterface: React.FC<ChatInterfaceProps> = ({
@@ -33,7 +36,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
   isGenerating,
   onStartGenerate,
   onRetryGenerate,
-  onPauseGenerate
+  onPauseGenerate,
+  generationProgress = 0,
+  selectedPosterType,
+  onBatchGenerate
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prevMessageCountRef = useRef(0);
@@ -305,6 +311,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                 <Spin size="small" />
                 <span style={{ color: '#666' }}>AI正在为您设计海报... 可点击暂停按钮中断</span>
               </div>
+              {/* 进度条 */}
+              <Progress 
+                percent={generationProgress} 
+                size="small"
+                strokeColor={{
+                  '0%': '#667eea',
+                  '100%': '#764ba2',
+                }}
+                trailColor="#f0f0f0"
+                showInfo={true}
+                format={(percent) => `${Math.round(percent || 0)}%`}
+                style={{ fontSize: '12px', marginTop: '8px' }}
+              />
             </div>
           </div>
         )}
@@ -339,6 +358,29 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
       {/* 快捷指令区域 - 仅在有海报时显示 */}
       {messages.some(msg => msg.posterHtml) && !isGenerating && (
         <div style={{ padding: '4px 0', flexShrink: 0 }}>
+          {/* 邀请函特殊功能区域 */}
+          {selectedPosterType === 'invitation' && onBatchGenerate && (
+            <div style={{ marginBottom: '8px' }}>
+              <Button
+                type="primary"
+                size="small"
+                onClick={onBatchGenerate}
+                style={{
+                  fontSize: '12px',
+                  borderRadius: '16px',
+                  background: 'linear-gradient(135deg, #722ed1 0%, #9254de 100%)',
+                  border: 'none',
+                  padding: '4px 12px',
+                  height: 'auto',
+                  fontWeight: '500',
+                  boxShadow: '0 2px 8px rgba(114, 46, 209, 0.3)'
+                }}
+              >
+                📝 添加邀请人姓名（批量生成）
+              </Button>
+            </div>
+          )}
+          
           <div style={{ 
             fontSize: '13px', 
             color: '#666', 
