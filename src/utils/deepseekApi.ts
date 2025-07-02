@@ -1,5 +1,5 @@
 // DeepSeek API 配置和操作
-const DEEPSEEK_API_KEY = 'sk-cf7a0273c7c3461fb7b5eb520b2ffb54'; // 在这里填写您的API密钥
+const DEEPSEEK_API_KEY = import.meta.env.VITE_DEEPSEEK_API_KEY || localStorage.getItem('deepseek_api_key') || '';
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 
 // 提示词模板配置
@@ -16,12 +16,17 @@ const POSTER_PROMPTS = {
 - 嘉宾：{guests}
 - 参与人数：{maxParticipants}
 
+{guestDetails}
+
+{brandAssets}
+
 设计要求：
 1. 尺寸：1242×1660px（竖图格式）
 2. 风格：现代简约，高级感，符合女性社区特色
-3. 配色：可以使用渐变色、主题色#b01c02或其他优雅配色
+3. 配色：优先使用提供的品牌色彩，如果没有则可以使用渐变色、主题色#b01c02或其他优雅配色
 4. 布局：标题突出，信息层次清晰，视觉效果佳
 5. 创意：可以添加装饰元素、图标、背景图案等增强视觉效果
+6. 素材运用：{assetUsageInstructions}
 
 请输出完整的HTML代码，包含CSS样式。可以自由发挥创意，使用任何你认为合适的设计元素和布局方式。`,
 
@@ -34,12 +39,17 @@ const POSTER_PROMPTS = {
 - 地点：{location}
 - 费用：{fee}
 
+{guestDetails}
+
+{brandAssets}
+
 设计要求：
 1. 尺寸：900×383px（横版格式，适合微信分享）
 2. 风格：适合社交媒体传播，现代简约
-3. 配色：温暖亲和的色调，适合微信环境
+3. 配色：优先使用提供的品牌色彩，如果没有则使用温暖亲和的色调，适合微信环境
 4. 布局：信息简洁明了，适合手机查看
 5. 创意：可以使用图标、装饰元素等增强传播效果
+6. 素材运用：{assetUsageInstructions}
 
 请输出完整的HTML代码，包含CSS样式。可以自由设计布局和视觉效果。`,
 
@@ -54,14 +64,45 @@ const POSTER_PROMPTS = {
 - 地点：{location}
 - 费用：{fee}
 
+{guestDetails}
+
+{brandAssets}
+
 设计要求：
 1. 尺寸：1242×1660px（竖版邀请函格式）
 2. 风格：正式典雅，体现尊重感和仪式感
-3. 配色：优雅庄重的色调
+3. 配色：优先使用提供的品牌色彩，如果没有则使用优雅庄重的色调
 4. 布局："邀请函"标题突出，内容层次清晰
 5. 创意：可以添加边框、装饰图案、logo等元素
+6. 素材运用：{assetUsageInstructions}
 
-请输出完整的HTML代码，包含CSS样式。可以自由发挥创意设计。`
+请输出完整的HTML代码，包含CSS样式。可以自由发挥创意设计。`,
+
+  activity: `作为专业活动海报设计师，请为"前排落座"女性社区设计活动行平台专用海报。
+
+活动信息：
+- 标题：{title}
+- 副标题：{subtitle}
+- 时间：{time}
+- 地点：{location}
+- 描述：{description}
+- 费用：{fee}
+- 嘉宾：{guests}
+- 参与人数：{maxParticipants}
+
+{guestDetails}
+
+{brandAssets}
+
+设计要求：
+1. 尺寸：1080×640px（横版格式，适合活动行平台展示）
+2. 风格：现代专业，吸引眼球，适合在线平台展示
+3. 配色：优先使用提供的品牌色彩，如果没有则使用活力色彩，突出活动吸引力
+4. 布局：横版布局，左右分区或上下分区，信息层次清晰，适合网页展示
+5. 创意：可以添加活动元素、装饰图案、背景等增强视觉冲击力
+6. 素材运用：{assetUsageInstructions}
+
+请输出完整的HTML代码，包含CSS样式。注意横版布局的特点，合理安排文字和图形元素。`
 };
 
 export interface DeepSeekResponse {
@@ -76,7 +117,7 @@ export interface DeepSeekResponse {
 }
 
 export async function generatePosterWithDeepSeek(
-  posterType: 'general' | 'wechat' | 'invitation',
+  posterType: 'general' | 'wechat' | 'invitation' | 'activity',
   eventData: {
     title: string;
     subtitle?: string;
@@ -90,7 +131,23 @@ export async function generatePosterWithDeepSeek(
     invitationText?: string;
   },
   referenceImages?: string[],
-  customRequirements?: string
+  customRequirements?: string,
+  // 新增参数：设计素材
+  designAssets?: {
+    brandColors?: string[];
+    logos?: Array<{ id: string; url: string; name: string }>;
+    qrCodes?: Array<{ id: string; url: string; name: string }>;
+    brandFonts?: Array<{ id: string; name: string; url: string }>;
+  },
+  // 新增参数：详细嘉宾信息
+  guestDetails?: Array<{
+    name: string;
+    title: string;
+    bio?: string;
+    avatar?: string;
+  }>,
+  // 新增参数：选择的字段
+  selectedFields?: string[]
 ): Promise<DeepSeekResponse> {
   try {
     console.log('🔍 DeepSeek API调用开始');
@@ -100,7 +157,7 @@ export async function generatePosterWithDeepSeek(
       console.error('❌ API密钥未配置');
       return {
         success: false,
-        error: 'API密钥未配置，请在代码中设置正确的DeepSeek API密钥'
+        error: 'API密钥未配置，请先在设置中配置您的DeepSeek API密钥'
       };
     }
 
@@ -118,20 +175,93 @@ export async function generatePosterWithDeepSeek(
     console.log('📝 使用的海报类型:', posterType);
     console.log('📝 对应的prompt模板长度:', prompt.length);
     console.log('📋 活动数据:', eventData);
+    console.log('🎨 设计素材:', designAssets);
+    console.log('👥 嘉宾详情:', guestDetails);
     
-    // 显示关键prompt特征
-    const promptInfo = {
-      general: '通用海报(1242×1660px)',
-      wechat: '微信海报(990×383px)', 
-      invitation: '邀请函(1242×1660px)'
-    };
-    console.log('🎯 prompt特征:', promptInfo[posterType]);
+    // 构建嘉宾详细信息
+    let guestDetailsText = '';
+    if (guestDetails && guestDetails.length > 0) {
+      guestDetailsText = `嘉宾详细信息：\n`;
+      guestDetails.forEach((guest, index) => {
+        guestDetailsText += `${index + 1}. ${guest.name} - ${guest.title}\n`;
+        if (guest.bio) {
+          guestDetailsText += `   简介：${guest.bio}\n`;
+        }
+        if (guest.avatar) {
+          guestDetailsText += `   头像：${guest.avatar}\n`;
+        }
+      });
+      guestDetailsText += '\n请在海报中突出展示嘉宾信息，包括姓名、职位头衔等。如果有头像图片，请适当展示。';
+    }
+    
+    // 构建品牌素材信息
+    let brandAssetsText = '';
+    let assetUsageInstructions = '';
+    
+    if (designAssets) {
+      brandAssetsText = '设计素材资源：\n';
+      
+      // 品牌色彩
+      if (designAssets.brandColors && designAssets.brandColors.length > 0) {
+        brandAssetsText += `品牌色彩：${designAssets.brandColors.join(', ')}\n`;
+        assetUsageInstructions += `请使用这些品牌色彩：${designAssets.brandColors.join(', ')} 作为主色调，特别是标题、按钮、装饰元素等关键位置；`;
+      }
+      
+      // Logo
+      if (designAssets.logos && designAssets.logos.length > 0) {
+        brandAssetsText += `Logo资源：${designAssets.logos.length}个logo可用\n`;
+        assetUsageInstructions += `在海报顶部或底部预留logo位置，使用以下占位符：<div class="logo-placeholder" style="width: 120px; height: 40px; background: #f0f0f0; border: 2px dashed #ccc; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #999;">LOGO位置</div>；`;
+      }
+      
+      // 二维码
+      if (designAssets.qrCodes && designAssets.qrCodes.length > 0) {
+        brandAssetsText += `二维码：${designAssets.qrCodes.length}个二维码可用\n`;
+        assetUsageInstructions += `在海报右下角或底部居中预留二维码位置，使用以下占位符：<div class="qrcode-placeholder" style="width: 100px; height: 100px; background: #f8f8f8; border: 2px dashed #ddd; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #999; flex-direction: column;"><div>扫码</div><div>参与</div></div>；`;
+      }
+      
+      // 品牌字体
+      if (designAssets.brandFonts && designAssets.brandFonts.length > 0) {
+        brandAssetsText += `品牌字体：${designAssets.brandFonts.map(f => f.name).join(', ')}\n`;
+        assetUsageInstructions += `标题区域添加class="brand-title"，正文区域添加class="brand-text"，便于后续应用品牌字体；`;
+      }
+    }
+    
+    if (!assetUsageInstructions) {
+      assetUsageInstructions = '使用合适的颜色、字体和装饰元素来增强视觉效果';
+    }
+    
+    // 构建字段选择说明
+    let fieldsInstruction = '';
+    if (selectedFields && selectedFields.length > 0) {
+      const fieldLabels = selectedFields.map(field => {
+        switch(field) {
+          case 'title': return '标题';
+          case 'subtitle': return '副标题';
+          case 'location': return '位置';
+          case 'time': return '时间';
+          case 'guests': return '嘉宾';
+          case 'description': return '描述';
+          case 'maxParticipants': return '参与人数';
+          case 'fee': return '费用';
+          case 'qrcode': return '二维码';
+          case 'logo': return 'Logo';
+          default: return field;
+        }
+      }).join('、');
+      
+      fieldsInstruction = `\n\n⚠️ 字段显示要求：\n请仅在海报中显示以下用户选择的字段：${fieldLabels}\n不要显示其他未选中的字段信息。确保布局紧凑合理。`;
+    }
     
     // 替换占位符
     Object.entries(eventData).forEach(([key, value]) => {
       const placeholder = `{${key}}`;
       prompt = prompt.replace(new RegExp(placeholder, 'g'), value || '');
     });
+    
+    // 替换素材占位符
+    prompt = prompt.replace(/{guestDetails}/g, guestDetailsText);
+    prompt = prompt.replace(/{brandAssets}/g, brandAssetsText);
+    prompt = prompt.replace(/{assetUsageInstructions}/g, assetUsageInstructions);
 
     // 添加参考图片说明
     if (referenceImages && referenceImages.length > 0) {
@@ -145,6 +275,11 @@ export async function generatePosterWithDeepSeek(
       console.log('✨ 自定义需求:', customRequirements);
     }
 
+    // 添加字段选择说明
+    if (fieldsInstruction) {
+      prompt += fieldsInstruction;
+    }
+
     console.log('📤 发送的完整prompt长度:', prompt.length);
     console.log('📤 发送的prompt前500字符:', prompt.substring(0, 500) + '...');
     
@@ -152,7 +287,8 @@ export async function generatePosterWithDeepSeek(
     const sizeVerification = {
       general: prompt.includes('870') && prompt.includes('870'),
       wechat: prompt.includes('1280') && prompt.includes('640'),
-      invitation: prompt.includes('870') && prompt.includes('1000')
+      invitation: prompt.includes('870') && prompt.includes('1000'),
+      activity: prompt.includes('1080') && prompt.includes('640')
     };
     
     if (sizeVerification[posterType]) {
@@ -244,7 +380,7 @@ export async function generatePosterWithDeepSeek(
   }
 }
 
-function cleanHtmlResponse(response: string, _posterType?: 'general' | 'wechat' | 'invitation'): string {
+function cleanHtmlResponse(response: string, _posterType?: 'general' | 'wechat' | 'invitation' | 'activity'): string {
   let cleaned = response.trim();
   
   // 移除markdown代码块标记
@@ -284,14 +420,15 @@ ${cleaned}
 }
 
 // 验证HTML内容是否符合海报类型要求
-function validateHtmlForPosterType(htmlContent: string, posterType: 'general' | 'wechat' | 'invitation') {
+function validateHtmlForPosterType(htmlContent: string, posterType: 'general' | 'wechat' | 'invitation' | 'activity') {
   const issues: string[] = [];
   
   // 检查尺寸信息
   const expectedDimensions = {
     general: { width: 1242, height: 1660 },
     wechat: { width: 900, height: 383 },
-    invitation: { width: 1242, height: 1660 }
+    invitation: { width: 1242, height: 1660 },
+    activity: { width: 1080, height: 640 }
   };
   
   const expected = expectedDimensions[posterType];
@@ -323,7 +460,7 @@ function validateHtmlForPosterType(htmlContent: string, posterType: 'general' | 
 
 // DeepSeek API 集成模块
 export interface DeepSeekPosterRequest {
-  type: 'general' | 'wechat' | 'invitation';
+  type: 'general' | 'wechat' | 'invitation' | 'activity';
   eventData: {
     title: string;
     subtitle?: string;
@@ -347,8 +484,6 @@ export interface DeepSeekPosterRequest {
   customRequirements?: string; // 用户自定义要求
 }
 
-
-
 // 验证API密钥格式
 export function validateApiKey(apiKey: string): boolean {
   return Boolean(apiKey && apiKey.length > 10 && apiKey.startsWith('sk-'));
@@ -369,4 +504,126 @@ export function updateApiUsage() {
   localStorage.setItem('deepseek_total_requests', (current.totalRequests + 1).toString());
   localStorage.setItem('deepseek_monthly_requests', (current.monthlyRequests + 1).toString());
   localStorage.setItem('deepseek_last_request', new Date().toISOString());
+}
+
+// HTML后处理函数：应用用户配置的素材和样式
+export function applyDesignAssetsToHtml(
+  htmlContent: string,
+  designAssets: {
+    brandColors?: string[];
+    logos?: Array<{ id: string; url: string; name: string }>;
+    qrCodes?: Array<{ id: string; url: string; name: string }>;
+    brandFonts?: Array<{ id: string; name: string; url: string }>;
+  }
+): string {
+  let processedHtml = htmlContent;
+  
+  try {
+    // 1. 替换Logo占位符
+    if (designAssets.logos && designAssets.logos.length > 0) {
+      const logoHtml = `<img src="${designAssets.logos[0].url}" alt="${designAssets.logos[0].name}" style="width: 120px; height: 40px; object-fit: contain;">`;
+      processedHtml = processedHtml.replace(
+        /<div class="logo-placeholder"[^>]*>.*?<\/div>/gi,
+        logoHtml
+      );
+    }
+    
+    // 2. 替换二维码占位符
+    if (designAssets.qrCodes && designAssets.qrCodes.length > 0) {
+      const qrCodeHtml = `
+        <div style="text-align: center;">
+          <img src="${designAssets.qrCodes[0].url}" alt="二维码" style="width: 100px; height: 100px; object-fit: contain;">
+          <div style="font-size: 12px; color: #666; margin-top: 4px;">扫码参与</div>
+        </div>
+      `;
+      processedHtml = processedHtml.replace(
+        /<div class="qrcode-placeholder"[^>]*>.*?<\/div>/gi,
+        qrCodeHtml
+      );
+    }
+    
+    // 3. 应用品牌色彩
+    if (designAssets.brandColors && designAssets.brandColors.length > 0) {
+      const primaryColor = designAssets.brandColors[0];
+      const secondaryColor = designAssets.brandColors[1] || primaryColor;
+      
+      // 替换常用的颜色值
+      processedHtml = processedHtml.replace(/#1890ff/gi, primaryColor);
+      processedHtml = processedHtml.replace(/#52c41a/gi, secondaryColor);
+      processedHtml = processedHtml.replace(/#b01c02/gi, primaryColor);
+      
+      // 为有brand-title类的元素应用主色
+      processedHtml = processedHtml.replace(
+        /class="brand-title"/gi,
+        `class="brand-title" style="color: ${primaryColor};"`
+      );
+    }
+    
+    // 4. 应用品牌字体
+    if (designAssets.brandFonts && designAssets.brandFonts.length > 0) {
+      const fontName = designAssets.brandFonts[0].name;
+      const fontUrl = designAssets.brandFonts[0].url;
+      
+      // 添加字体定义到style标签中
+      const fontFaceRule = `
+        @font-face {
+          font-family: '${fontName}';
+          src: url('${fontUrl}') format('truetype');
+        }
+      `;
+      
+      // 如果有style标签，添加字体定义
+      if (processedHtml.includes('<style>')) {
+        processedHtml = processedHtml.replace(
+          '<style>',
+          `<style>${fontFaceRule}`
+        );
+      } else {
+        // 如果没有style标签，添加一个
+        processedHtml = processedHtml.replace(
+          '<head>',
+          `<head><style>${fontFaceRule}</style>`
+        );
+      }
+      
+      // 为有brand-title和brand-text类的元素应用字体
+      processedHtml = processedHtml.replace(
+        /class="brand-title"/gi,
+        `class="brand-title" style="font-family: '${fontName}', sans-serif;"`
+      );
+      processedHtml = processedHtml.replace(
+        /class="brand-text"/gi,
+        `class="brand-text" style="font-family: '${fontName}', sans-serif;"`
+      );
+    }
+    
+    console.log('✅ HTML后处理完成');
+    return processedHtml;
+    
+  } catch (error) {
+    console.error('❌ HTML后处理失败:', error);
+    return htmlContent; // 如果处理失败，返回原始HTML
+  }
+}
+
+// API密钥管理函数
+export function setApiKey(apiKey: string): boolean {
+  if (!validateApiKey(apiKey)) {
+    return false;
+  }
+  localStorage.setItem('deepseek_api_key', apiKey);
+  return true;
+}
+
+export function getApiKey(): string {
+  return localStorage.getItem('deepseek_api_key') || '';
+}
+
+export function hasValidApiKey(): boolean {
+  const apiKey = getApiKey();
+  return validateApiKey(apiKey);
+}
+
+export function removeApiKey(): void {
+  localStorage.removeItem('deepseek_api_key');
 } 

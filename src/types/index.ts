@@ -99,4 +99,22 @@ export interface EnhancedAIData {
   }[];
 }
 
+// API模式类型
+export type ApiMode = 'local' | 'remote';
+
+// 设计资源管理接口
+export interface DesignAssets {
+  referenceImages: Array<{ id: string; url: string; name: string; size?: number }>;
+  logos: Array<{ id: string; url: string; name: string; size?: number }>;
+  qrCodes: Array<{ id: string; url: string; name: string; size?: number }>;
+  brandColors: string[];
+  brandFonts: Array<{ id: string; name: string; url: string; size?: number }>;
+  // 服务器配置相关
+  apiMode: ApiMode;
+  serverAddress: string;
+  serverPort: string;
+  isServerConnected: boolean;
+  isMiniProgramIntegrated: boolean;
+}
+
  

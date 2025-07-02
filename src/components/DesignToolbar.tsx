@@ -1,28 +1,26 @@
 import React, { useState } from 'react';
-import { Button, Upload, ColorPicker, Tag, message, Modal, Input } from 'antd';
+import { Button, Upload, message, Modal, Input, Tag, ColorPicker } from 'antd';
 import { 
-  PictureOutlined, 
-  FileImageOutlined, 
+  PlusOutlined, 
+  DeleteOutlined,
+  CloseOutlined,
+  UploadOutlined,
+  PictureOutlined,
   QrcodeOutlined,
   BgColorsOutlined,
-  FontSizeOutlined,
-  PlusOutlined
+  FontSizeOutlined
 } from '@ant-design/icons';
 import PosterTypeSelector from './PosterTypeSelector';
-
-interface DesignAssets {
-  referenceImages: Array<{ id: string; url: string; name: string }>;
-  logos: Array<{ id: string; url: string; name: string }>;
-  qrCodes: Array<{ id: string; url: string; name: string }>;
-  brandColors: string[];
-  brandFonts: Array<{ id: string; name: string; url: string }>;
-}
+import type { DesignAssets } from '../types';
 
 interface DesignToolbarProps {
   selectedPosterType: string;
-  onPosterTypeChange: (type: 'vertical' | 'invitation' | 'wechat' | 'xiaohongshu') => void;
+  onPosterTypeChange: (type: 'vertical' | 'invitation' | 'wechat' | 'xiaohongshu' | 'activity') => void;
   designAssets: DesignAssets;
   onAssetsChange: (assets: DesignAssets) => void;
+  onConfigClick: () => void;
+  onDownloadPoster?: () => void;
+  onDownloadHtml?: () => void;
 }
 
 const DesignToolbar: React.FC<DesignToolbarProps> = ({
@@ -113,47 +111,28 @@ const DesignToolbar: React.FC<DesignToolbarProps> = ({
 
   return (
     <div style={{
-      padding: '16px 20px',
-      background: 'linear-gradient(135deg, #ffffff 0%, #fafafa 100%)',
-      borderRadius: '12px',
-      border: '1px solid #e8e8e8'
+      display: 'flex',
+      alignItems: 'center',
+      gap: '16px'
     }}>
-      {/* 基础配置区域 */}
-      <div style={{ marginBottom: '16px' }}>
-        <div style={{ 
-          fontSize: '14px', 
-          fontWeight: '600', 
-          color: '#262626', 
-          marginBottom: '12px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}>
-          🎨 基础配置
-        </div>
-        {/* 使用新的海报类型选择器 */}
+      {/* 海报类型选择器 - 紧凑版 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '14px' }}>类型：</span>
         <PosterTypeSelector
           selectedType={selectedPosterType}
           onTypeChange={onPosterTypeChange}
         />
       </div>
 
-      {/* 高级配置区域 - 可折叠 */}
-      <div>
-        <div style={{ 
-          fontSize: '14px', 
-          fontWeight: '600', 
-          color: '#262626', 
-          marginBottom: '12px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          cursor: 'pointer'
-        }}>
-          ⚙️ 高级配置 
-          <span style={{ fontSize: '12px', color: '#999' }}>(可选)</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+      {/* 分隔线 */}
+      <div style={{ 
+        width: '1px', 
+        height: '20px', 
+        background: 'rgba(255, 255, 255, 0.2)' 
+      }} />
+
+      {/* 配置选项按钮组 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
 
         {/* 参考图上传 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -188,7 +167,7 @@ const DesignToolbar: React.FC<DesignToolbarProps> = ({
 
         {/* Logo上传 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <FileImageOutlined style={{ color: '#fa8c16' }} />
+          <UploadOutlined style={{ color: '#fa8c16' }} />
           <span style={{ fontWeight: '500', color: '#333' }}>Logo：</span>
           <Upload
             accept="image/*"
@@ -247,7 +226,7 @@ const DesignToolbar: React.FC<DesignToolbarProps> = ({
           <span style={{ fontWeight: '500', color: '#333' }}>主题色：</span>
           <ColorPicker
             value="#1890ff"
-            onChangeComplete={(color) => addBrandColor(color.toHexString())}
+            onChange={(value) => addBrandColor(value.toHexString())}
             trigger="click"
           >
             <Button 
@@ -304,7 +283,6 @@ const DesignToolbar: React.FC<DesignToolbarProps> = ({
             </Tag>
           ))}
         </div>
-      </div>
       </div>
 
       {/* 二维码添加弹窗 */}

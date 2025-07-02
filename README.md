@@ -2,7 +2,91 @@
 
 前排落座女性社区管理后台，基于 React + TypeScript + Ant Design 构建。
 
-## 功能特性
+## 🚀 快速部署
+
+您可以将这个AI海报设计系统部署到以下平台，让更多人使用：
+
+### Vercel部署（推荐）
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/qplz-admin)
+
+1. 点击上方按钮或访问 [vercel.com](https://vercel.com)
+2. 连接您的GitHub账号并导入此仓库
+3. 配置环境变量（可选）：
+   ```
+   VITE_DEEPSEEK_API_KEY=sk-your-api-key-here
+   ```
+4. 点击Deploy，几分钟后即可完成部署
+
+### Netlify部署
+
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/your-username/qplz-admin)
+
+1. 点击上方按钮或访问 [netlify.com](https://netlify.com)
+2. 连接GitHub仓库
+3. 构建设置：`npm run build`，发布目录：`dist`
+4. 配置环境变量（可选）：`VITE_DEEPSEEK_API_KEY`
+
+### GitHub Pages部署
+
+1. Fork这个仓库到您的GitHub账号
+2. 在仓库设置中启用GitHub Pages
+3. 创建 `.github/workflows/deploy.yml` 文件：
+
+```yaml
+name: Deploy to GitHub Pages
+on:
+  push:
+    branches: [ main ]
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+      - uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+```
+
+## 🔑 API密钥配置
+
+### 获取DeepSeek API密钥
+
+1. 访问 [DeepSeek开放平台](https://platform.deepseek.com)
+2. 注册账号并登录
+3. 在控制台创建API密钥
+4. 复制形如 `sk-xxx` 的API密钥
+
+### 配置方式
+
+#### 方式一：环境变量（推荐用于私人部署）
+在部署平台配置环境变量：
+```
+VITE_DEEPSEEK_API_KEY=sk-your-api-key-here
+```
+
+#### 方式二：用户自定义（推荐用于公开部署）
+- 不设置环境变量
+- 用户在应用中点击"配置"→"API设置"
+- 输入自己的API密钥，仅存储在浏览器本地
+
+## 🌟 功能特性
+
+### AI海报设计系统
+- **智能生成**: 基于DeepSeek AI的海报自动设计
+- **多种类型**: 支持竖图海报、邀请函、微信海报、小红书海报、活动行海报
+- **素材管理**: 上传Logo、二维码、参考图片，配置品牌色彩和字体
+- **实时预览**: 所见即所得的海报预览效果
+- **一键导出**: 高清PNG格式海报下载
+
+### 活动管理功能
 
 ### 1. 仪表板 (Dashboard)
 - 活动统计数据展示

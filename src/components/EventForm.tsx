@@ -12,8 +12,9 @@ import {
   Row,
   Col,
   Divider,
+  Upload
 } from 'antd';
-import { PlusOutlined, MinusCircleOutlined, PictureOutlined } from '@ant-design/icons';
+import { PlusOutlined, MinusCircleOutlined, PictureOutlined, UploadOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 import type { Event } from '../types';
@@ -34,9 +35,28 @@ const EventForm: React.FC = () => {
   const [posterUpdateVisible, setPosterUpdateVisible] = useState(false);
   const [originalEventData, setOriginalEventData] = useState<any>(null);
   const [changedFields, setChangedFields] = useState<string[]>([]);
+  const [autoGenerateOnOpen, setAutoGenerateOnOpen] = useState(false);
   const { getEventById, createEvent, updateEvent } = useEvents();
   
   const isEditing = Boolean(id);
+
+  // 处理嘉宾头像上传
+  const handleAvatarUpload = (file: File, fieldPath: (string | number)[], setFieldValue: any) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      setFieldValue(fieldPath, result);
+      message.success('头像上传成功');
+    };
+    reader.readAsDataURL(file);
+    return false; // 阻止默认上传行为
+  };
+
+  // 删除嘉宾头像
+  const removeAvatar = (fieldPath: (string | number)[], setFieldValue: any) => {
+    setFieldValue(fieldPath, '');
+    message.success('头像已删除');
+  };
 
   useEffect(() => {
     if (isEditing && id) {
@@ -91,7 +111,7 @@ const EventForm: React.FC = () => {
 
       let result;
       if (isEditing && id) {
-        // 更新活动
+        // 更新活动 - 直接更新，不检测变更
         result = await updateEvent(id, eventData);
       } else {
         // 创建活动
@@ -100,19 +120,8 @@ const EventForm: React.FC = () => {
 
       if (result.success) {
         message.success(isEditing ? '活动更新成功！' : '活动创建成功！');
-        
-        // 如果是编辑模式且检测到信息变更，检查是否需要更新海报
-        if (isEditing && id) {
-          const changes = detectEventChanges(values);
-          if (changes.length > 0 && hasExistingPoster()) {
-            setChangedFields(changes);
-            setPosterUpdateVisible(true);
-          } else {
-            navigate('/events');
-          }
-        } else {
-          navigate('/events');
-        }
+        // 直接返回列表页面，不检测海报变更
+        navigate('/events');
       } else {
         message.error(result.error || '操作失败，请重试');
       }
@@ -131,7 +140,17 @@ const EventForm: React.FC = () => {
       return;
     }
     
-    // 打开AI设计对话框
+    // 如果是编辑模式，检测活动信息是否有变更
+    if (isEditing && id) {
+      const changes = detectEventChanges(values);
+      if (changes.length > 0 && hasExistingPoster()) {
+        setChangedFields(changes);
+        setPosterUpdateVisible(true);
+        return; // 等待用户选择更新方式
+      }
+    }
+    
+    // 如果没有变更或不是编辑模式，直接打开AI设计对话框
     setAiDialogVisible(true);
   };
   
@@ -190,7 +209,7 @@ const EventForm: React.FC = () => {
     Object.keys(newData).forEach(key => {
       if ((newData as any)[key] !== (originalData as any)[key]) {
         changes.push(fieldLabels[key] || key);
-      }
+    }
     });
 
     return changes;
@@ -212,9 +231,20 @@ const EventForm: React.FC = () => {
       // 这里可以实现简单的HTML文本替换逻辑
       // 或者调用专门的海报修改API
     } else if (choice === 'regenerate') {
-      // 重新生成海报 - 打开AI对话框
+      // 重新生成海报 - 打开AI对话框并自动开始生成
       setAiDialogVisible(true);
+      // 设置自动生成标识，让AI对话框知道要自动开始生成
+      setTimeout(() => {
+        setAutoGenerateOnOpen(true);
+      }, 100);
     }
+  };
+
+  // 处理AI对话框关闭
+  const handleAiDialogClose = () => {
+    setAiDialogVisible(false);
+    // 重置自动生成标识
+    setAutoGenerateOnOpen(false);
   };
 
   return (
@@ -374,9 +404,83 @@ const EventForm: React.FC = () => {
                         <Form.Item
                           {...restField}
                           name={[name, 'avatar']}
-                          label="头像链接"
+                          label="头像"
                         >
-                          <Input placeholder="请输入头像链接（可选）" />
+                          <Form.Item
+                            noStyle
+                            shouldUpdate={(prevValues, currentValues) => {
+                              const prevAvatar = prevValues.guests?.[name]?.avatar;
+                              const currentAvatar = currentValues.guests?.[name]?.avatar;
+                              return prevAvatar !== currentAvatar;
+                            }}
+                          >
+                            {({ getFieldValue, setFieldValue }) => {
+                              const avatarValue = getFieldValue(['guests', name, 'avatar']);
+                              
+                              return (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                  {avatarValue ? (
+                                    // 显示已上传的头像
+                                    <div style={{ 
+                                      display: 'flex', 
+                                      alignItems: 'center', 
+                                      gap: '8px',
+                                      padding: '8px',
+                                      border: '1px solid #d9d9d9',
+                                      borderRadius: '6px',
+                                      background: '#fafafa'
+                                    }}>
+                                      <img 
+                                        src={avatarValue} 
+                                        alt="嘉宾头像" 
+                                        style={{ 
+                                          width: '40px', 
+                                          height: '40px', 
+                                          objectFit: 'cover',
+                                          borderRadius: '50%',
+                                          border: '1px solid #d9d9d9'
+                                        }} 
+                                      />
+                                      <span style={{ flex: 1, fontSize: '12px', color: '#666' }}>
+                                        头像已上传
+                                      </span>
+                                      <Button 
+                                        type="link" 
+                                        size="small"
+                                        danger
+                                        onClick={() => removeAvatar(['guests', name, 'avatar'], setFieldValue)}
+                                      >
+                                        删除
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    // 显示上传按钮
+                                    <Upload
+                                      name="avatar"
+                                      maxCount={1}
+                                      accept="image/*"
+                                      showUploadList={false}
+                                      beforeUpload={(file) => {
+                                        handleAvatarUpload(file, ['guests', name, 'avatar'], setFieldValue);
+                                        return false;
+                                      }}
+                                    >
+                                      <Button 
+                                        icon={<UploadOutlined />} 
+                                        size="small"
+                                        style={{ width: '100%' }}
+                                      >
+                                        上传头像
+                                      </Button>
+                                    </Upload>
+                                  )}
+                                  <div style={{ fontSize: '11px', color: '#999' }}>
+                                    支持 JPG、PNG 格式
+                                  </div>
+                                </div>
+                              );
+                            }}
+                          </Form.Item>
                         </Form.Item>
                       </Col>
                     </Row>
@@ -427,9 +531,10 @@ const EventForm: React.FC = () => {
       {/* AI海报设计对话框 */}
       <AIDesignDialog
         visible={aiDialogVisible}
-        onClose={() => setAiDialogVisible(false)}
+        onClose={handleAiDialogClose}
         eventData={getCurrentEventData()}
         eventId={id}
+        autoGenerateOnOpen={autoGenerateOnOpen}
       />
 
       {/* 海报更新提示 */}

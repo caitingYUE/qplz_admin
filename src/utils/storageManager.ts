@@ -295,4 +295,111 @@ export function stopStorageMonitoring() {
     clearInterval(healthCheckInterval);
     healthCheckInterval = null;
   }
-} 
+}
+
+// 字体文件压缩工具
+export const compressFontFile = (base64Data: string): string => {
+  try {
+    // 这里可以实现实际的字体文件压缩逻辑
+    // 目前返回原始数据，未来可以集成字体子集化工具
+    return base64Data;
+  } catch (error) {
+    console.warn('字体压缩失败，使用原始数据:', error);
+    return base64Data;
+  }
+};
+
+// 存储空间分析工具
+export const analyzeStorageUsage = () => {
+  const storageInfo: { [key: string]: number } = {};
+  let totalSize = 0;
+  
+  for (let key in localStorage) {
+    if (localStorage.hasOwnProperty(key)) {
+      const value = localStorage[key];
+      const size = new Blob([value]).size;
+      storageInfo[key] = size;
+      totalSize += size;
+    }
+  }
+  
+  const maxStorageMB = 10; // 保守估计
+  const usagePercentage = (totalSize / (maxStorageMB * 1024 * 1024)) * 100;
+  
+  return {
+    storageInfo,
+    totalSize,
+    totalSizeMB: totalSize / (1024 * 1024),
+    usagePercentage,
+    maxStorageMB
+  };
+};
+
+// 清理存储工具
+export const cleanupStorage = (options: {
+  keepDesignAssets?: boolean;
+  keepBrandColors?: boolean;
+  keepChatHistory?: boolean;
+} = {}) => {
+  const { keepDesignAssets = true, keepBrandColors = true, keepChatHistory = false } = options;
+  
+  const keysToDelete = [];
+  
+  for (let key in localStorage) {
+    if (localStorage.hasOwnProperty(key)) {
+      let shouldDelete = false;
+      
+      // 临时文件
+      if (key.startsWith('temp_') || key.startsWith('cache_') || key.startsWith('error_')) {
+        shouldDelete = true;
+      }
+      
+      // 聊天历史
+      if (!keepChatHistory && key.startsWith('chatHistory_')) {
+        shouldDelete = true;
+      }
+      
+      // 设计资源（谨慎删除）
+      if (!keepDesignAssets && key === 'designAssets') {
+        shouldDelete = true;
+      }
+      
+      // 品牌颜色
+      if (!keepBrandColors && key === 'brandColors') {
+        shouldDelete = true;
+      }
+      
+      if (shouldDelete) {
+        keysToDelete.push(key);
+      }
+    }
+  }
+  
+  keysToDelete.forEach(key => localStorage.removeItem(key));
+  
+  return {
+    deletedKeys: keysToDelete,
+    freedSpace: keysToDelete.length * 1024 // 粗略估算
+  };
+};
+
+// 字体文件大小优化建议
+export const getFontOptimizationSuggestions = (fontName: string, fontSizeMB: number) => {
+  const suggestions = [];
+  
+  if (fontSizeMB > 5) {
+    suggestions.push('🚨 文件过大，建议使用WOFF2格式');
+  }
+  
+  if (fontSizeMB > 2) {
+    suggestions.push('💡 考虑使用字体子集化');
+  }
+  
+  if (fontName.includes('ttf') || fontName.includes('otf')) {
+    suggestions.push('📦 转换为WOFF/WOFF2格式可减少50%大小');
+  }
+  
+  suggestions.push('🌐 考虑使用Google Fonts等在线字体服务');
+  
+  return suggestions;
+}; 

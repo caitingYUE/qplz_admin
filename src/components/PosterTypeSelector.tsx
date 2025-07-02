@@ -12,14 +12,14 @@ interface PosterType {
 
 interface PosterTypeSelectorProps {
   selectedType: string;
-  onTypeChange: (type: 'vertical' | 'invitation' | 'wechat' | 'xiaohongshu') => void;
+  onTypeChange: (type: 'vertical' | 'invitation' | 'wechat' | 'xiaohongshu' | 'activity') => void;
 }
 
 const POSTER_TYPES: PosterType[] = [
   {
     value: 'vertical',
     label: '竖图海报',
-    icon: '📄',
+    icon: '',
     description: '适合打印和展示',
     dimensions: '800×1200',
     useCase: '线下活动、打印宣传'
@@ -27,7 +27,7 @@ const POSTER_TYPES: PosterType[] = [
   {
     value: 'invitation',
     label: '邀请函',
-    icon: '💌',
+    icon: '',
     description: '正式邀请场合',
     dimensions: '800×1200',
     useCase: '会议邀请、活动邀请'
@@ -35,18 +35,26 @@ const POSTER_TYPES: PosterType[] = [
   {
     value: 'wechat',
     label: '微信海报',
-    icon: '💬',
-    description: '微信朋友圈分享',
+    icon: '',
+    description: '微信公众号头图使用',
     dimensions: '900×383',
     useCase: '社交媒体传播'
   },
   {
     value: 'xiaohongshu',
     label: '小红书海报',
-    icon: '📱',
+    icon: '',
     description: '小红书平台分享',
     dimensions: '1242×1660',
     useCase: '内容营销推广'
+  },
+  {
+    value: 'activity',
+    label: '活动行海报',
+    icon: '',
+    description: '活动行平台专用',
+    dimensions: '1080×640',
+    useCase: '活动发布、在线宣传'
   }
 ];
 
@@ -65,7 +73,7 @@ const PosterTypeSelector: React.FC<PosterTypeSelectorProps> = ({
         alignItems: 'center',
         gap: '8px'
       }}>
-        📐 选择海报类型
+        选择海报类型
       </div>
       
       <div style={{ 
@@ -92,7 +100,7 @@ const PosterTypeSelector: React.FC<PosterTypeSelectorProps> = ({
               position: 'relative',
               overflow: 'hidden'
             }}
-            onClick={() => onTypeChange(type.value as 'vertical' | 'invitation' | 'wechat' | 'xiaohongshu')}
+            onClick={() => onTypeChange(type.value as 'vertical' | 'invitation' | 'wechat' | 'xiaohongshu' | 'activity')}
           >
             {/* 选中指示器 */}
             {selectedType === type.value && (
@@ -116,14 +124,16 @@ const PosterTypeSelector: React.FC<PosterTypeSelectorProps> = ({
             )}
             
             <div style={{ textAlign: 'center', padding: '8px 0' }}>
-              {/* 图标 */}
-              <div style={{ 
-                fontSize: '32px', 
-                marginBottom: '8px',
-                filter: selectedType === type.value ? 'brightness(1.2)' : 'none'
-              }}>
-                {type.icon}
-              </div>
+              {/* 图标 - 仅在有图标时显示 */}
+              {type.icon && (
+                <div style={{ 
+                  fontSize: '32px', 
+                  marginBottom: '8px',
+                  filter: selectedType === type.value ? 'brightness(1.2)' : 'none'
+                }}>
+                  {type.icon}
+                </div>
+              )}
               
               {/* 标题 */}
               <div style={{ 

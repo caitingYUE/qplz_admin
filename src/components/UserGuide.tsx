@@ -74,7 +74,7 @@ const UserGuide: React.FC<UserGuideProps> = ({
               <Space>
                 <FontSizeOutlined style={{ color: '#722ed1', fontSize: '18px' }} />
                 <div>
-                  <strong>自定义字体</strong>
+                  <strong>品牌字体</strong>
                   <div style={{ color: '#666', fontSize: '13px' }}>
                     上传.ttf/.otf字体文件，创建独特的字体效果
                   </div>
