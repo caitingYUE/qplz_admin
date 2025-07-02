@@ -14,11 +14,11 @@ export default async function handler(req, res) {
 
   try {
     // 检查环境变量
-    if (!process.env.MONGODB_URI) {
+    if (!process.env.DATABASE_URL && !process.env.MONGODB_URI) {
       return res.status(500).json({
         success: false,
         error: 'MongoDB connection not configured',
-        details: 'Please set MONGODB_URI environment variable in Vercel dashboard'
+        details: 'Please set DATABASE_URL or MONGODB_URI environment variable in Vercel dashboard'
       });
     }
 
