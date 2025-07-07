@@ -145,6 +145,49 @@ const generateFinalPlanPrompt = (finalOutline: OutlineOption, originalData: Even
 请用Markdown格式输出，要求内容详实、专业、可执行。`;
 };
 
+// 改进的JSON解析函数
+const parseAIResponse = (response: string): any => {
+  try {
+    // 直接尝试解析
+    return JSON.parse(response);
+  } catch (error) {
+    console.log('直接解析失败，尝试提取JSON部分...');
+    
+    // 查找JSON部分
+    const jsonStart = response.indexOf('{');
+    const jsonEnd = response.lastIndexOf('}');
+    
+    if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+      const jsonStr = response.substring(jsonStart, jsonEnd + 1);
+      console.log('提取的JSON字符串:', jsonStr);
+      
+      try {
+        return JSON.parse(jsonStr);
+      } catch (secondError) {
+        console.error('提取JSON后仍解析失败:', secondError);
+        console.log('JSON字符串:', jsonStr);
+        
+        // 尝试修复常见的JSON问题
+        let cleanedJson = jsonStr
+          .replace(/,(\s*[}\]])/g, '$1') // 移除尾随逗号
+          .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // 移除控制字符
+          .replace(/\n/g, ' ') // 替换换行符
+          .replace(/\t/g, ' ') // 替换制表符
+          .replace(/\s+/g, ' '); // 压缩空白字符
+        
+        try {
+          return JSON.parse(cleanedJson);
+        } catch (finalError) {
+          console.error('最终解析失败:', finalError);
+          throw new Error(`JSON解析失败: ${finalError instanceof Error ? finalError.message : '未知错误'}`);
+        }
+      }
+    } else {
+      throw new Error('未找到有效的JSON数据');
+    }
+  }
+};
+
 // 调用DeepSeek API
 const callDeepSeekAPI = async (prompt: string): Promise<any> => {
   const apiKey = getApiKey();
@@ -196,7 +239,17 @@ export const generateEventOutlines = async (
   
   try {
     // 尝试解析JSON响应
-    const parsed = JSON.parse(response);
+    console.log('AI原始响应:', response);
+    console.log('响应长度:', response.length);
+    console.log('响应前100字符:', response.substring(0, 100));
+    
+    const parsed = parseAIResponse(response);
+    console.log('解析成功，parsed对象:', parsed);
+    
+    if (!parsed.outlines || !Array.isArray(parsed.outlines)) {
+      throw new Error('响应格式错误：缺少outlines数组');
+    }
+    
     const outlines = parsed.outlines.map((outline: any, index: number) => ({
       id: `outline-${Date.now()}-${index}`,
       title: outline.title,
@@ -207,11 +260,12 @@ export const generateEventOutlines = async (
       venue: outline.venue
     }));
     
+    console.log('处理后的outlines:', outlines);
     return outlines;
   } catch (error) {
     console.error('解析AI响应失败:', error);
-    console.log('原始响应:', response);
-    throw new Error('AI响应格式错误，请重试');
+    console.log('完整原始响应:', response);
+    throw new Error(`AI响应解析失败: ${error instanceof Error ? error.message : '未知错误'}`);
   }
 };
 
@@ -233,7 +287,7 @@ export const generateEnhancedOutlines = async (
   progressCallback?.(70, '正在解析优化后的方案...');
   
   try {
-    const parsed = JSON.parse(response);
+    const parsed = parseAIResponse(response);
     const outlines = parsed.outlines.map((outline: any, index: number) => ({
       id: `enhanced-${baseOutline.id}-${Date.now()}-${index}`,
       title: outline.title,
