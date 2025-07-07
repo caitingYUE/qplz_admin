@@ -114,7 +114,8 @@ const EventPlanningPage: React.FC = () => {
   };
 
   const handleOutlineSelect = async (index: number, enhancement?: string) => {
-    setSelectedOutline(index);
+    const selectedOutlineData = outlineOptions[index];
+    setSelectedOutline(selectedOutlineData);
     setIsGenerating(true);
     startProgressTracking('开始优化选定的活动方案...');
 
@@ -123,7 +124,7 @@ const EventPlanningPage: React.FC = () => {
       
       if (enhancement) {
         updateProgress(20, '正在根据您的要求优化方案...');
-        const enhancedOutlines = await generateEnhancedOutlines(baseOutline, enhancement, planningData, updateProgress);
+        const enhancedOutlines = await generateEnhancedOutlines(baseOutline, enhancement, planningData!, updateProgress);
         
         updateProgress(90, '方案优化完成，正在处理数据...');
         setEnhancedOutlines(enhancedOutlines);
@@ -143,6 +144,13 @@ const EventPlanningPage: React.FC = () => {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  // 为OutlineSelection组件创建简单的选择处理函数
+  const handleSimpleOutlineSelect = (outline: OutlineOption) => {
+    setSelectedOutline(outline);
+    setEnhancedOutlines([outline]);
+    setCurrentStep(2);
   };
 
   const handleRegenerateOutlines = async () => {
@@ -287,7 +295,7 @@ const EventPlanningPage: React.FC = () => {
         {currentStep === 1 && (
           <OutlineSelection
             outlines={outlineOptions}
-            onSelect={handleOutlineSelect}
+            onSelect={handleSimpleOutlineSelect}
             onRegenerate={handleRegenerateOutlines}
             onBack={handleBack}
             isGenerating={isGenerating}
