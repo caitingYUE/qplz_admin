@@ -967,7 +967,6 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
   const pauseGenerate = () => {
     // 立即显示视觉反馈确认函数被调用
     console.log('🛑 pauseGenerate函数被调用！');
-    alert('暂停函数已被触发！');
     
     console.log('🔍 当前状态:', {
       isGenerating,

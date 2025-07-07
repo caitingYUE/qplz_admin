@@ -154,8 +154,15 @@ export async function generatePosterWithDeepSeek(
     
     // 检查是否已被取消
     if (signal?.aborted) {
+      console.log('🚫 signal已经被abort了，直接返回');
       throw new Error('请求已被取消');
     }
+    
+    console.log('🔍 signal状态:', {
+      hasSignal: !!signal,
+      isAborted: signal?.aborted,
+      signalType: typeof signal
+    });
 
     if (!DEEPSEEK_API_KEY || DEEPSEEK_API_KEY.startsWith('sk-xxxxxxxxx')) {
       console.error('❌ API密钥未配置');
@@ -319,6 +326,11 @@ export async function generatePosterWithDeepSeek(
     };
 
     console.log('📤 请求体大小:', JSON.stringify(requestBody).length, 'bytes');
+    
+    console.log('🌐 准备发送fetch请求，signal状态:', {
+      hasSignal: !!signal,
+      isAborted: signal?.aborted
+    });
 
     const response = await fetch(DEEPSEEK_API_URL, {
       method: 'POST',
@@ -329,8 +341,12 @@ export async function generatePosterWithDeepSeek(
       body: JSON.stringify(requestBody),
       signal // 添加signal支持取消
     });
-
+    
     console.log('📡 API响应状态:', response.status, response.statusText);
+    console.log('🔍 fetch完成后signal状态:', {
+      hasSignal: !!signal,
+      isAborted: signal?.aborted
+    });
 
     if (!response.ok) {
       console.error('❌ API请求失败，状态码:', response.status);
