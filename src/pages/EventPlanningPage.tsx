@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Steps, Typography, message, Button, Modal, Progress } from 'antd';
+import { Card, Steps, Typography, Button, Modal, Progress } from 'antd';
 import EventPlanningForm from '../components/EventPlanningForm';
 import OutlineSelection from '../components/OutlineSelection';
 import PlanEnhancement from '../components/PlanEnhancement';
