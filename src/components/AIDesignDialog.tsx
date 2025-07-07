@@ -623,10 +623,22 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
         progressIntervalRef.current = null;
       }
       
-      // 如果是用户主动取消，不显示错误
-      if (error.name === 'AbortError') {
+      // 如果是用户主动取消，不显示错误消息（避免触发重试机制）
+      if (error.name === 'AbortError' || error.message?.includes('取消') || error.message?.includes('aborted')) {
         console.log('用户取消了海报生成');
         setGenerationProgress(0);
+        
+        // 添加暂停消息（不包含错误关键字，避免触发重试）
+        const cancelMessage: ChatMessage = {
+          id: `system-cancel-${Date.now()}`,
+          type: 'system',
+          content: '⏸️ 海报生成已暂停',
+          timestamp: Date.now()
+        };
+        
+        const finalMessages = [...chatMessages, cancelMessage];
+        setChatMessages(finalMessages);
+        saveChatHistory(finalMessages);
         return;
       }
       
@@ -838,6 +850,18 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
       if (error.name === 'AbortError') {
         console.log('用户取消了海报修改');
         setGenerationProgress(0);
+        
+        // 添加暂停消息（不包含错误关键字，避免触发重试）
+        const cancelMessage: ChatMessage = {
+          id: `system-cancel-modify-${Date.now()}`,
+          type: 'system',
+          content: '⏸️ 海报修改已暂停',
+          timestamp: Date.now()
+        };
+        
+        const finalMessages = [...chatMessages, cancelMessage];
+        setChatMessages(finalMessages);
+        saveChatHistory(finalMessages);
         return;
       }
       

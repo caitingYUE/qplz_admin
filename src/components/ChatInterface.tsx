@@ -234,6 +234,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({
                      (message.content.includes('生成海报时遇到了问题') || 
                       message.content.includes('修改海报时遇到了问题') ||
                       message.content.includes('生成海报时遇到问题')) && 
+                     !message.content.includes('⏸️') &&
+                     !message.content.includes('暂停') &&
                      onRetryGenerate && !isGenerating && (
                       <div
                         onClick={onRetryGenerate}
