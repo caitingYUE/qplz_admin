@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Steps, Typography, message, Button } from 'antd';
+import { Card, Steps, Typography, message, Button, Modal, Progress } from 'antd';
 import EventPlanningForm from '../components/EventPlanningForm';
 import OutlineSelection from '../components/OutlineSelection';
 import PlanEnhancement from '../components/PlanEnhancement';
@@ -23,6 +23,11 @@ const EventPlanningPage: React.FC = () => {
   const [finalPlan, setFinalPlan] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [stepsVisible, setStepsVisible] = useState(true);
+  
+  // 进度条和日志状态
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [progressLogs, setProgressLogs] = useState<string[]>([]);
+  const [showProgressModal, setShowProgressModal] = useState(false);
 
   // 组件初始化时恢复保存的数据
   React.useEffect(() => {
@@ -36,6 +41,34 @@ const EventPlanningPage: React.FC = () => {
       }
     }
   }, []);
+
+  // 进度控制函数
+  const updateProgress = (progress: number, log: string) => {
+    setGenerationProgress(progress);
+    setProgressLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${log}`]);
+  };
+
+  const resetProgress = () => {
+    setGenerationProgress(0);
+    setProgressLogs([]);
+  };
+
+  const startProgressTracking = (title: string) => {
+    resetProgress();
+    setShowProgressModal(true);
+    updateProgress(0, title);
+  };
+
+  const finishProgressTracking = (success: boolean, message: string) => {
+    setGenerationProgress(100);
+    updateProgress(100, message);
+    setTimeout(() => {
+      setShowProgressModal(false);
+      if (success) {
+        resetProgress();
+      }
+    }, 2000);
+  };
 
   const steps = [
     {
@@ -57,56 +90,78 @@ const EventPlanningPage: React.FC = () => {
   ];
 
   const handleFormSubmit = async (data: EventPlanningData) => {
-    // 保存用户数据到localStorage
+    setPlanningData(data);
     localStorage.setItem('eventPlanningData', JSON.stringify(data));
     
-    setPlanningData(data);
     setIsGenerating(true);
+    startProgressTracking('开始生成活动策划方案...');
     
     try {
-      message.loading({ content: '正在生成活动方案大纲...', key: 'generating' });
+      updateProgress(20, '正在连接DeepSeek API...');
+      const outlines = await generateEventOutlines(data, updateProgress);
       
-      // 调用真实的DeepSeek API
-      const outlines = await generateEventOutlines(data);
-      
+      updateProgress(90, '方案生成完成，正在处理数据...');
       setOutlineOptions(outlines);
       setCurrentStep(1);
       
-      message.success({ content: '活动方案大纲生成成功！', key: 'generating' });
-    } catch (error: any) {
+      finishProgressTracking(true, '三个活动方案已成功生成！');
+    } catch (error) {
       console.error('生成方案失败:', error);
-      message.error({ 
-        content: error.message || '生成失败，请检查API配置或重试', 
-        key: 'generating' 
-      });
+      finishProgressTracking(false, `生成失败: ${error instanceof Error ? error.message : '未知错误'}`);
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handleOutlineSelect = (outline: OutlineOption) => {
-    setSelectedOutline(outline);
-    setCurrentStep(2);
+  const handleOutlineSelect = async (index: number, enhancement?: string) => {
+    setSelectedOutline(index);
+    setIsGenerating(true);
+    startProgressTracking('开始优化选定的活动方案...');
+
+    try {
+      const baseOutline = outlineOptions[index];
+      
+      if (enhancement) {
+        updateProgress(20, '正在根据您的要求优化方案...');
+        const enhancedOutlines = await generateEnhancedOutlines(baseOutline, enhancement, planningData, updateProgress);
+        
+        updateProgress(90, '方案优化完成，正在处理数据...');
+        setEnhancedOutlines(enhancedOutlines);
+        setCurrentStep(2);
+        
+        finishProgressTracking(true, '方案优化完成！');
+      } else {
+        updateProgress(50, '使用原始方案，跳转到下一步...');
+        setEnhancedOutlines([baseOutline]);
+        setCurrentStep(2);
+        
+        finishProgressTracking(true, '方案选择完成！');
+      }
+    } catch (error) {
+      console.error('优化方案失败:', error);
+      finishProgressTracking(false, `优化失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleRegenerateOutlines = async () => {
     if (!planningData) return;
     
     setIsGenerating(true);
+    startProgressTracking('重新生成活动方案...');
+    
     try {
-      message.loading({ content: '正在重新生成方案...', key: 'regenerating' });
+      updateProgress(20, '正在连接DeepSeek API...');
+      const outlines = await generateEventOutlines(planningData, updateProgress);
       
-      // 调用真实的DeepSeek API重新生成
-      const outlines = await generateEventOutlines(planningData);
-      
+      updateProgress(90, '新方案生成完成，正在处理数据...');
       setOutlineOptions(outlines);
-      message.success({ content: '新方案生成成功！', key: 'regenerating' });
-    } catch (error: any) {
+      
+      finishProgressTracking(true, '新方案生成成功！');
+    } catch (error) {
       console.error('重新生成失败:', error);
-      message.error({ 
-        content: error.message || '重新生成失败，请重试', 
-        key: 'regenerating' 
-      });
+      finishProgressTracking(false, `重新生成失败: ${error instanceof Error ? error.message : '请重试'}`);
     } finally {
       setIsGenerating(false);
     }
@@ -116,24 +171,24 @@ const EventPlanningPage: React.FC = () => {
     if (!selectedOutline || !planningData) return;
     
     setIsGenerating(true);
+    startProgressTracking('正在优化活动方案...');
+    
     try {
-      message.loading({ content: '正在优化活动方案...', key: 'enhancing' });
-      
-      // 调用真实的DeepSeek API优化方案
+      updateProgress(20, '正在根据您的要求优化方案...');
       const enhancedOptions = await generateEnhancedOutlines(
         selectedOutline, 
         enhancementRequirements, 
-        planningData
+        planningData,
+        updateProgress
       );
       
+      updateProgress(90, '方案优化完成，正在处理数据...');
       setEnhancedOutlines(enhancedOptions);
-      message.success({ content: '方案优化完成！', key: 'enhancing' });
-    } catch (error: any) {
+      
+      finishProgressTracking(true, '方案优化完成！');
+    } catch (error) {
       console.error('方案优化失败:', error);
-      message.error({ 
-        content: error.message || '优化失败，请重试', 
-        key: 'enhancing' 
-      });
+      finishProgressTracking(false, `优化失败: ${error instanceof Error ? error.message : '请重试'}`);
     } finally {
       setIsGenerating(false);
     }
@@ -142,75 +197,20 @@ const EventPlanningPage: React.FC = () => {
   const handleFinalSelection = async (outline: OutlineOption) => {
     setSelectedOutline(outline);
     setIsGenerating(true);
+    startProgressTracking('开始生成完整的活动策划书...');
     
     try {
-      message.loading({ content: '正在生成完整活动策划书...', key: 'finalizing' });
+      updateProgress(20, '正在构建详细的活动策划内容...');
+      const plan = await generateFinalPlan(outline, planningData!, updateProgress);
       
-      // 模拟生成完整方案
-      await new Promise(resolve => setTimeout(resolve, 4000));
-      
-      const mockFinalPlan = `
-# ${outline.title} - 完整活动策划书
-
-## 一、活动概述
-${outline.overview}
-
-活动主题：${planningData?.theme}
-参与人数：${planningData?.participantCount}
-活动时长：${planningData?.duration}
-举办城市：${planningData?.city}
-
-## 二、活动亮点
-${outline.highlights.map(highlight => `- ${highlight}`).join('\n')}
-
-## 三、详细时间安排
-${outline.timeline.map(time => `**${time}**`).join('\n')}
-
-## 四、预算说明
-${outline.budget}
-
-### 预算明细：
-- 场地租赁：占总预算30%
-- 嘉宾费用：占总预算25%  
-- 物料制作：占总预算20%
-- 餐饮服务：占总预算15%
-- 其他费用：占总预算10%
-
-## 五、场地建议
-${outline.venue}
-
-### 场地要求：
-- 容纳人数：${planningData?.participantCount}
-- 基础设施：投影设备、音响系统、WiFi覆盖
-- 交通便利：地铁/公交直达
-- 停车设施：提供充足停车位
-
-## 六、营销推广
-- 社交媒体宣传
-- 合作伙伴推广
-- 邮件营销
-- 线下宣传
-
-## 七、风险管控
-- 天气因素应对方案
-- 技术设备备用方案
-- 疫情防控措施
-- 紧急情况处理流程
-
-## 八、后续跟进
-- 活动效果评估
-- 参与者反馈收集
-- 合作关系维护
-- 下次活动规划
-      `;
-      
-      setFinalPlan(mockFinalPlan);
+      updateProgress(90, '策划书生成完成，正在最后整理...');
+      setFinalPlan(plan);
       setCurrentStep(3);
       
-      message.success({ content: '完整活动策划书生成成功！', key: 'finalizing' });
+      finishProgressTracking(true, '完整活动策划书已生成完成！');
     } catch (error) {
       console.error('生成最终方案失败:', error);
-      message.error({ content: '生成失败，请重试', key: 'finalizing' });
+      finishProgressTracking(false, `生成失败: ${error instanceof Error ? error.message : '未知错误'}`);
     } finally {
       setIsGenerating(false);
     }
@@ -313,6 +313,61 @@ ${outline.venue}
           />
         )}
       </div>
+
+      {/* 进度条模态窗口 */}
+      <Modal
+        title="🎯 AI生成进度"
+        open={showProgressModal}
+        footer={null}
+        closable={false}
+        width={600}
+        centered
+      >
+        <div style={{ marginBottom: '16px' }}>
+          <Progress 
+            percent={generationProgress} 
+            status={generationProgress === 100 ? 'success' : 'active'}
+            strokeColor={{
+              '0%': '#b01c02',
+              '100%': '#ff4d4f'
+            }}
+          />
+        </div>
+        
+        <div style={{ 
+          maxHeight: '300px', 
+          overflowY: 'auto',
+          backgroundColor: '#f5f5f5',
+          padding: '12px',
+          borderRadius: '6px',
+          border: '1px solid #d9d9d9'
+        }}>
+          <div style={{ 
+            fontFamily: 'Monaco, Consolas, monospace',
+            fontSize: '12px',
+            lineHeight: '1.4'
+          }}>
+            {progressLogs.map((log, index) => (
+              <div key={index} style={{ 
+                marginBottom: '4px',
+                color: log.includes('失败') || log.includes('错误') ? '#ff4d4f' : '#666'
+              }}>
+                {log}
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        {generationProgress === 100 && (
+          <div style={{ 
+            marginTop: '16px', 
+            textAlign: 'center',
+            color: progressLogs[progressLogs.length - 1]?.includes('失败') ? '#ff4d4f' : '#52c41a'
+          }}>
+            {progressLogs[progressLogs.length - 1]?.includes('失败') ? '⚠️ 生成失败' : '✅ 生成完成'}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

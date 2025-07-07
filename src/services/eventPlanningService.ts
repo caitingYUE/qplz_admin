@@ -180,9 +180,19 @@ const callDeepSeekAPI = async (prompt: string): Promise<any> => {
 };
 
 // 生成活动方案大纲
-export const generateEventOutlines = async (planningData: EventPlanningData): Promise<OutlineOption[]> => {
+export const generateEventOutlines = async (
+  planningData: EventPlanningData, 
+  progressCallback?: (progress: number, message: string) => void
+): Promise<OutlineOption[]> => {
+  progressCallback?.(10, '正在准备请求数据...');
+  
   const prompt = generateOutlinePrompt(planningData);
+  
+  progressCallback?.(30, '正在调用DeepSeek API...');
+  
   const response = await callDeepSeekAPI(prompt);
+  
+  progressCallback?.(70, '正在解析生成的方案...');
   
   try {
     // 尝试解析JSON响应
@@ -209,10 +219,18 @@ export const generateEventOutlines = async (planningData: EventPlanningData): Pr
 export const generateEnhancedOutlines = async (
   baseOutline: OutlineOption, 
   enhancementRequirements: string, 
-  originalData: EventPlanningData
+  originalData: EventPlanningData,
+  progressCallback?: (progress: number, message: string) => void
 ): Promise<OutlineOption[]> => {
+  progressCallback?.(10, '正在准备优化请求...');
+  
   const prompt = generateEnhancedPrompt(baseOutline, enhancementRequirements, originalData);
+  
+  progressCallback?.(30, '正在调用DeepSeek API进行方案优化...');
+  
   const response = await callDeepSeekAPI(prompt);
+  
+  progressCallback?.(70, '正在解析优化后的方案...');
   
   try {
     const parsed = JSON.parse(response);
@@ -237,10 +255,18 @@ export const generateEnhancedOutlines = async (
 // 生成完整策划书
 export const generateFinalPlan = async (
   finalOutline: OutlineOption, 
-  originalData: EventPlanningData
+  originalData: EventPlanningData,
+  progressCallback?: (progress: number, message: string) => void
 ): Promise<string> => {
+  progressCallback?.(10, '正在准备策划书生成请求...');
+  
   const prompt = generateFinalPlanPrompt(finalOutline, originalData);
+  
+  progressCallback?.(30, '正在调用DeepSeek API生成完整策划书...');
+  
   const response = await callDeepSeekAPI(prompt);
+  
+  progressCallback?.(80, '策划书生成完成，正在最终处理...');
   
   return response;
 }; 
