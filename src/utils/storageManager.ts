@@ -272,7 +272,7 @@ class StorageManager {
 export const storageManager = new StorageManager();
 
 // 定期健康检查
-let healthCheckInterval: number | null = null;
+let healthCheckInterval: any = null;
 
 export function startStorageMonitoring() {
   if (healthCheckInterval) return;

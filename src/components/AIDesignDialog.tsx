@@ -173,6 +173,9 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
   const [userInput, setUserInput] = useState('');
   const [abortController, setAbortController] = useState<AbortController | null>(null);
   
+  // 进度计时器引用
+  const progressIntervalRef = useRef<any>(null);
+  
   // 邀请函特殊状态
   const [batchGeneratorVisible, setBatchGeneratorVisible] = useState(false);
   
@@ -486,6 +489,9 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
       }
       setGenerationProgress(Math.min(progress, 95));
     }, 500);
+    
+    // 保存引用以便暂停时清理
+    progressIntervalRef.current = interval;
     return interval;
   };
 
@@ -598,7 +604,10 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
         saveChatHistory(finalMessages);
         message.success('海报生成成功！');
         // 完成进度条
-        clearInterval(progressInterval);
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
         completeProgress();
       } else {
         throw new Error(result.error || '生成失败');
@@ -607,11 +616,15 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
       console.error('生成海报失败:', error);
       
       // 清理进度条
-      clearInterval(progressInterval);
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
       
       // 如果是用户主动取消，不显示错误
       if (error.name === 'AbortError') {
         console.log('用户取消了海报生成');
+        setGenerationProgress(0);
         return;
       }
       
@@ -630,6 +643,7 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
     } finally {
       setIsGenerating(false);
       setAbortController(null);
+      progressIntervalRef.current = null;
     }
   };
 
@@ -799,7 +813,10 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
         saveChatHistory(finalMessages);
         message.success('海报更新成功！');
         // 完成进度条
-        clearInterval(progressInterval);
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
         completeProgress();
       } else {
         throw new Error(result.error || '修改失败');
@@ -808,11 +825,15 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
       console.error('修改海报失败:', error);
       
       // 清理进度条
-      clearInterval(progressInterval);
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
       
       // 如果是用户主动取消，不显示错误
       if (error.name === 'AbortError') {
         console.log('用户取消了海报修改');
+        setGenerationProgress(0);
         return;
       }
       
@@ -831,6 +852,7 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
     } finally {
       setIsGenerating(false);
       setAbortController(null);
+      progressIntervalRef.current = null;
     }
   };
 
@@ -939,23 +961,35 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
 
   // 暂停生成
   const pauseGenerate = () => {
+    // 清理进度计时器
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+    
+    // 中止API请求
     if (abortController) {
       abortController.abort();
       setAbortController(null);
     }
+    
+    // 重置状态
     setIsGenerating(false);
+    setGenerationProgress(0);
     
     // 添加暂停提示消息
     const pauseMessage: ChatMessage = {
       id: `system-pause-${Date.now()}`,
       type: 'system',
-      content: '📢 海报生成已暂停。您可以点击右侧的刷新按钮重新生成，或继续与AI对话调整海报。',
+      content: '⏸️ 海报生成已暂停。您可以点击右侧的刷新按钮重新生成，或继续与AI对话调整海报。',
       timestamp: Date.now()
     };
     
     const updatedMessages = [...chatMessages, pauseMessage];
     setChatMessages(updatedMessages);
     saveChatHistory(updatedMessages);
+    
+    message.info('海报生成已暂停');
   };
 
   // 全屏设计模式
