@@ -1,6 +1,7 @@
 import React from 'react';
 import { Form, Input, Select, DatePicker, Card, Button, Space, Typography } from 'antd';
 import { BulbOutlined, LoadingOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -21,13 +22,25 @@ interface EventPlanningData {
 interface EventPlanningFormProps {
   onSubmit: (data: EventPlanningData) => void;
   isGenerating: boolean;
+  initialData?: EventPlanningData;
 }
 
 const EventPlanningForm: React.FC<EventPlanningFormProps> = ({
   onSubmit,
-  isGenerating
+  isGenerating,
+  initialData
 }) => {
   const [form] = Form.useForm();
+
+  // 当有初始数据时，回显到表单
+  React.useEffect(() => {
+    if (initialData) {
+      form.setFieldsValue({
+        ...initialData,
+        eventDate: initialData.eventDate ? dayjs(initialData.eventDate) : undefined
+      });
+    }
+  }, [initialData, form]);
 
   const handleSubmit = (values: any) => {
     const formData: EventPlanningData = {
@@ -81,123 +94,129 @@ const EventPlanningForm: React.FC<EventPlanningFormProps> = ({
         layout="vertical"
         onFinish={handleSubmit}
         requiredMark={false}
-        style={{ maxWidth: '800px' }}
+        style={{ maxWidth: '1000px', margin: '0 auto' }}
       >
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-          {/* 左列 */}
-          <div>
-            <Form.Item
-              name="theme"
-              label={<><span style={{ color: 'red' }}>*</span> 活动主题</>}
-              rules={[{ required: true, message: '请输入活动主题' }]}
-            >
-              <Input 
-                placeholder="例如：女性科技创新论坛"
-                size="large"
-              />
-            </Form.Item>
+        {/* 第一行：基本信息 */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+          <Form.Item
+            name="theme"
+            label={<><span style={{ color: 'red' }}>*</span> 活动主题</>}
+            rules={[{ required: true, message: '请输入活动主题' }]}
+          >
+            <Input 
+              placeholder="例如：女性科技创新论坛"
+              size="large"
+            />
+          </Form.Item>
 
-            <Form.Item
-              name="participantCount"
-              label={<><span style={{ color: 'red' }}>*</span> 预计参与人数</>}
-              rules={[{ required: true, message: '请选择参与人数' }]}
+          <Form.Item
+            name="participantCount"
+            label={<><span style={{ color: 'red' }}>*</span> 预计参与人数</>}
+            rules={[{ required: true, message: '请选择参与人数' }]}
+          >
+            <Select 
+              placeholder="选择活动规模"
+              size="large"
             >
-              <Select 
-                placeholder="选择活动规模"
-                size="large"
-              >
-                {participantOptions.map(option => (
-                  <Option key={option.value} value={option.value}>
-                    {option.label}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
+              {participantOptions.map(option => (
+                <Option key={option.value} value={option.value}>
+                  {option.label}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
 
-            <Form.Item
-              name="city"
-              label={<><span style={{ color: 'red' }}>*</span> 举办城市</>}
-              rules={[{ required: true, message: '请输入举办城市' }]}
-            >
-              <Input 
-                placeholder="例如：北京、上海、深圳"
-                size="large"
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="duration"
-              label={<><span style={{ color: 'red' }}>*</span> 活动持续时间</>}
-              rules={[{ required: true, message: '请选择活动持续时间' }]}
-            >
-              <Select 
-                placeholder="选择活动时长"
-                size="large"
-              >
-                {durationOptions.map(option => (
-                  <Option key={option.value} value={option.value}>
-                    {option.label}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-
-            <Form.Item
-              name="eventDate"
-              label="期望举办日期"
-            >
-              <DatePicker 
-                placeholder="选择日期（可选）"
-                size="large"
-                style={{ width: '100%' }}
-              />
-            </Form.Item>
-          </div>
-
-          {/* 右列 */}
-          <div>
-            <Form.Item
-              name="description"
-              label={<><span style={{ color: 'red' }}>*</span> 活动描述</>}
-              rules={[{ required: true, message: '请输入活动描述' }]}
-            >
-              <TextArea 
-                placeholder="详细描述您想要举办的活动内容、目的和期望效果..."
-                rows={4}
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="userProfile"
-              label="目标参与者画像"
-            >
-              <TextArea 
-                placeholder="例如：25-40岁职场女性，主要是IT行业从业者和创业者..."
-                rows={3}
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="requirements"
-              label="特殊要求"
-            >
-              <TextArea 
-                placeholder="对活动的特殊要求、期望亮点或必须包含的环节..."
-                rows={3}
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="venueNeeds"
-              label="场地需求"
-            >
-              <TextArea 
-                placeholder="对场地的具体要求，如：地理位置、设施配备、风格偏好等..."
-                rows={3}
-              />
-            </Form.Item>
-          </div>
+          <Form.Item
+            name="city"
+            label={<><span style={{ color: 'red' }}>*</span> 举办城市</>}
+            rules={[{ required: true, message: '请输入举办城市' }]}
+          >
+            <Input 
+              placeholder="例如：北京、上海、深圳"
+              size="large"
+            />
+          </Form.Item>
         </div>
+
+        {/* 第二行：时间信息 */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+          <Form.Item
+            name="duration"
+            label={<><span style={{ color: 'red' }}>*</span> 活动持续时间</>}
+            rules={[{ required: true, message: '请选择活动持续时间' }]}
+          >
+            <Select 
+              placeholder="选择活动时长"
+              size="large"
+            >
+              {durationOptions.map(option => (
+                <Option key={option.value} value={option.value}>
+                  {option.label}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="eventDate"
+            label="期望举办日期"
+          >
+            <DatePicker 
+              placeholder="选择日期（可选）"
+              size="large"
+              style={{ width: '100%' }}
+            />
+          </Form.Item>
+        </div>
+
+        {/* 第三行：活动描述 */}
+        <Form.Item
+          name="description"
+          label={<><span style={{ color: 'red' }}>*</span> 活动描述</>}
+          rules={[{ required: true, message: '请输入活动描述' }]}
+          style={{ marginBottom: '24px' }}
+        >
+          <TextArea 
+            placeholder="详细描述您想要举办的活动内容、目的和期望效果..."
+            rows={4}
+            style={{ fontSize: '14px' }}
+          />
+        </Form.Item>
+
+        {/* 第四行：可选信息 */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+          <Form.Item
+            name="userProfile"
+            label="目标参与者画像"
+          >
+            <TextArea 
+              placeholder="例如：25-40岁职场女性，主要是IT行业从业者和创业者..."
+              rows={3}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="requirements"
+            label="特殊要求"
+          >
+            <TextArea 
+              placeholder="对活动的特殊要求、期望亮点或必须包含的环节..."
+              rows={3}
+            />
+          </Form.Item>
+        </div>
+
+        {/* 第五行：场地需求 */}
+        <Form.Item
+          name="venueNeeds"
+          label="场地需求"
+          style={{ marginBottom: '32px' }}
+        >
+          <TextArea 
+            placeholder="对场地的具体要求，如：地理位置、设施配备、风格偏好等..."
+            rows={2}
+          />
+        </Form.Item>
 
         <Form.Item style={{ marginTop: '30px', textAlign: 'center' }}>
           <Button 
