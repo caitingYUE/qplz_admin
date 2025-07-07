@@ -144,12 +144,19 @@ export async function generatePosterWithDeepSeek(
     avatar?: string;
   }>,
   // 新增参数：选择的字段
-  selectedFields?: string[]
+  selectedFields?: string[],
+  // 新增参数：abort signal支持取消
+  signal?: AbortSignal
 ): Promise<DeepSeekResponse> {
   try {
     console.log('🔍 DeepSeek API调用开始');
     console.log('API密钥状态:', DEEPSEEK_API_KEY ? `配置正确 (${DEEPSEEK_API_KEY.substring(0, 10)}...)` : '未配置');
     
+    // 检查是否已被取消
+    if (signal?.aborted) {
+      throw new Error('请求已被取消');
+    }
+
     if (!DEEPSEEK_API_KEY || DEEPSEEK_API_KEY.startsWith('sk-xxxxxxxxx')) {
       console.error('❌ API密钥未配置');
       return {
@@ -320,6 +327,7 @@ export async function generatePosterWithDeepSeek(
         'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
       },
       body: JSON.stringify(requestBody),
+      signal // 添加signal支持取消
     });
 
     console.log('📡 API响应状态:', response.status, response.statusText);
@@ -370,6 +378,15 @@ export async function generatePosterWithDeepSeek(
 
   } catch (error) {
     console.error('DeepSeek API调用失败:', error);
+    
+    // 检查是否是取消错误
+    if (error instanceof Error && (error.name === 'AbortError' || error.message.includes('取消'))) {
+      return {
+        success: false,
+        error: '请求已被用户取消'
+      };
+    }
+    
     return {
       success: false,
       error: error instanceof Error ? error.message : '未知错误'

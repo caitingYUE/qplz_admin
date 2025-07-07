@@ -582,7 +582,9 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
         // 传递嘉宾详细信息
         guestDetails,
         // 传递选择的字段
-        selectedFields
+        selectedFields,
+        // 传递signal以支持取消
+        controller.signal
       );
       
       if (result.success && result.html) {
@@ -788,7 +790,9 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
         // 传递嘉宾详细信息
         guestDetails,
         // 传递选择的字段
-        selectedFields
+        selectedFields,
+        // 传递signal以支持取消
+        controller.signal
       );
       
       if (result.success && result.html) {
@@ -961,19 +965,30 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
 
   // 暂停生成
   const pauseGenerate = () => {
+    console.log('🛑 pauseGenerate函数被调用！');
+    console.log('🔍 当前状态:', {
+      isGenerating,
+      hasProgressInterval: !!progressIntervalRef.current,
+      hasAbortController: !!abortController,
+      generationProgress
+    });
+    
     // 清理进度计时器
     if (progressIntervalRef.current) {
+      console.log('⏹️ 清理进度计时器');
       clearInterval(progressIntervalRef.current);
       progressIntervalRef.current = null;
     }
     
     // 中止API请求
     if (abortController) {
+      console.log('🚫 中止API请求');
       abortController.abort();
       setAbortController(null);
     }
     
     // 重置状态
+    console.log('🔄 重置生成状态');
     setIsGenerating(false);
     setGenerationProgress(0);
     
