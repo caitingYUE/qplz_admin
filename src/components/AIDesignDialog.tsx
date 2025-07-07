@@ -176,6 +176,9 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
   // 进度计时器引用
   const progressIntervalRef = useRef<any>(null);
   
+  // 暂停标记 - 用来防止暂停后自动重新生成
+  const hasBeenPaused = useRef(false);
+  
   // 邀请函特殊状态
   const [batchGeneratorVisible, setBatchGeneratorVisible] = useState(false);
   
@@ -254,7 +257,7 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
 
   // 处理自动生成海报
   useEffect(() => {
-    if (visible && autoGenerateOnOpen && eventData.name && !isGenerating) {
+    if (visible && autoGenerateOnOpen && eventData.name && !isGenerating && !hasBeenPaused.current) {
       // 延迟一下确保界面完全加载
       const timer = setTimeout(() => {
         handleAutoGenerate();
@@ -262,7 +265,7 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
       
       return () => clearTimeout(timer);
     }
-  }, [visible, autoGenerateOnOpen, eventData.name, isGenerating]);
+  }, [visible, autoGenerateOnOpen, eventData.name]); // 移除 isGenerating 依赖
 
   // 自动生成海报的处理函数
   const handleAutoGenerate = async () => {
@@ -506,6 +509,9 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
   // 生成海报
   const startGeneratePoster = async () => {
     if (isGenerating) return;
+
+    // 重置暂停标记
+    hasBeenPaused.current = false;
 
     // 创建新的AbortController
     const controller = new AbortController();
@@ -991,6 +997,9 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
   const pauseGenerate = () => {
     // 立即显示视觉反馈确认函数被调用
     console.log('🛑 pauseGenerate函数被调用！');
+    
+    // 设置暂停标记，防止自动重新生成
+    hasBeenPaused.current = true;
     
     console.log('🔍 当前状态:', {
       isGenerating,
