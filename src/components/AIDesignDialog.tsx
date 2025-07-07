@@ -965,7 +965,10 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
 
   // 暂停生成
   const pauseGenerate = () => {
+    // 立即显示视觉反馈确认函数被调用
     console.log('🛑 pauseGenerate函数被调用！');
+    alert('暂停函数已被触发！');
+    
     console.log('🔍 当前状态:', {
       isGenerating,
       hasProgressInterval: !!progressIntervalRef.current,
@@ -996,15 +999,13 @@ const AIDesignDialog: React.FC<AIDesignDialogProps> = ({
     const pauseMessage: ChatMessage = {
       id: `system-pause-${Date.now()}`,
       type: 'system',
-      content: '⏸️ 海报生成已暂停。您可以点击右侧的刷新按钮重新生成，或继续与AI对话调整海报。',
+      content: '用户已暂停海报生成',
       timestamp: Date.now()
     };
     
-    const updatedMessages = [...chatMessages, pauseMessage];
-    setChatMessages(updatedMessages);
-    saveChatHistory(updatedMessages);
+    setChatMessages(prev => [...prev, pauseMessage]);
     
-    message.info('海报生成已暂停');
+    message.info('已暂停海报生成');
   };
 
   // 全屏设计模式
