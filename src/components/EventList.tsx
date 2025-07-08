@@ -102,9 +102,11 @@ const EventList: React.FC = () => {
         const statusConfig = {
           draft: { color: 'orange', text: '草稿' },
           published: { color: 'green', text: '已发布' },
+          cancelled: { color: 'red', text: '已取消' },
+          completed: { color: 'blue', text: '已完成' },
           offline: { color: 'red', text: '已下线' },
-        };
-        const config = statusConfig[status];
+        } as const;
+        const config = statusConfig[status] || { color: 'default', text: status };
         return <Tag color={config.color}>{config.text}</Tag>;
       },
     },

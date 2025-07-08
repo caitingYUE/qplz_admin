@@ -2,13 +2,21 @@
 export interface Event {
   id: string;
   name: string;
+  subtitle?: string;
   description: string;
   date: string;
   time: string;
+  startTime: string;
+  endTime: string;
   location: string;
   capacity: number;
+  maxParticipants: number;
   registrations: number;
-  status: 'draft' | 'published' | 'cancelled' | 'completed';
+  currentParticipants: number;
+  fee?: string;
+  guests?: any[];
+  poster?: string;
+  status: 'draft' | 'published' | 'cancelled' | 'completed' | 'offline';
   createdAt: string;
   updatedAt: string;
 }
