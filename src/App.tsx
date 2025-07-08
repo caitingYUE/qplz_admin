@@ -9,7 +9,8 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   BulbOutlined,
-  DatabaseOutlined
+  DatabaseOutlined,
+  ThunderboltOutlined
 } from '@ant-design/icons';
 import EventList from './components/EventList';
 import EventForm from './components/EventForm';
@@ -17,6 +18,7 @@ import RegistrationList from './components/RegistrationList';
 import Dashboard from './components/Dashboard';
 import EventPlanningPage from './pages/EventPlanningPage';
 import ResourcesPage from './pages/ResourcesPage';
+import TrafficGenerationPage from './pages/TrafficGenerationPage';
 
 const { Header, Sider, Content } = Layout;
 
@@ -53,6 +55,11 @@ const AppContent: React.FC = () => {
       key: '/event-planning',
       icon: <BulbOutlined />,
       label: '活动策划',
+    },
+    {
+      key: '/traffic-generation',
+      icon: <ThunderboltOutlined />,
+      label: '引流推广',
     },
     {
       key: '/resources',
@@ -150,6 +157,7 @@ const AppContent: React.FC = () => {
             <Route path="/edit-event/:id" element={<EventForm />} />
             <Route path="/registrations" element={<RegistrationList />} />
             <Route path="/event-planning" element={<EventPlanningPage />} />
+            <Route path="/traffic-generation" element={<TrafficGenerationPage />} />
             <Route path="/resources" element={<ResourcesPage />} />
           </Routes>
         </Content>
