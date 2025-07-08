@@ -164,6 +164,26 @@ ${enhancementRequirements}
 
 // 生成完整策划书的prompt
 const generateFinalPlanPrompt = (finalOutline: OutlineOption, originalData: EventPlanningData) => {
+  const currentDate = new Date();
+  const eventDate = originalData.eventDate ? new Date(originalData.eventDate) : null;
+  
+  let timelineSection = '';
+  if (eventDate && eventDate > currentDate) {
+    const daysDiff = Math.ceil((eventDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
+    timelineSection = `
+活动时间信息：
+- 当前日期：${currentDate.toISOString().split('T')[0]}
+- 活动举办日期：${originalData.eventDate}
+- 剩余准备时间：${daysDiff}天
+
+请在策划书中包含一个详细的"倒排时间计划"章节，基于活动举办日期倒推，制定从现在到活动举办的完整时间表。包括：
+- 活动前60天、30天、15天、7天、3天、1天的关键节点
+- 每个时间节点的具体待办事项
+- 责任人分工建议
+- 风险预警时间点
+`;
+  }
+
   return `基于以下确定的活动方案，生成一份完整详细的活动策划书：
 
 最终方案：
@@ -179,23 +199,42 @@ const generateFinalPlanPrompt = (finalOutline: OutlineOption, originalData: Even
 - 描述：${originalData.description}
 - 参与人数：${originalData.participantCount}
 - 城市：${originalData.city}
-- 活动时长：${originalData.duration}
+- 活动时长：${originalData.duration}${timelineSection}
 
 请生成一份专业完整的活动策划书，包含以下章节：
-1. 活动概述
-2. 活动亮点
-3. 详细时间安排
-4. 预算说明（包含明细）
-5. 场地建议（包含具体要求）
+1. 项目概述
+2. 活动亮点与价值
+3. 详细执行方案
+4. 预算明细表
+5. 场地方案与要求
 6. 营销推广策略
-7. 风险管控方案
-8. 后续跟进计划
+7. ${eventDate ? '倒排时间计划（重点章节）' : '时间安排'}
+8. 风险管控方案
+9. 人员分工与职责
+10. 后续跟进计划
+
+${eventDate ? `
+特别要求 - 倒排时间计划章节：
+请制作一个详细的倒排时间表，格式如下：
+## 倒排时间计划
+
+### 活动前60天（具体日期）
+- [ ] 待办事项1（负责人：XXX）
+- [ ] 待办事项2（负责人：XXX）
+
+### 活动前30天（具体日期）
+- [ ] 待办事项1（负责人：XXX）
+- [ ] 待办事项2（负责人：XXX）
+
+以此类推，细化到活动前1天。每个时间节点要包含3-8个具体的待办事项。
+` : ''}
 
 请用Markdown格式输出，要求：
 - 内容详实、专业、可执行
 - 不要使用emoji表情符号
 - 标题要清晰简洁
-- 保持专业的商务文档风格`;
+- 保持专业的商务文档风格
+- ${eventDate ? '重点关注倒排时间计划的详细性和可操作性' : ''}`;
 };
 
 // 改进的JSON解析函数
