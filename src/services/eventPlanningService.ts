@@ -1,4 +1,5 @@
 import { getApiKey } from '../utils/deepseekApi';
+import type { CustomerResource, VenueResource } from '../types';
 
 // DeepSeek API配置
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
@@ -25,8 +26,51 @@ export interface OutlineOption {
   venue: string;
 }
 
-// 生成活动方案大纲的prompt
+// 获取现有资源数据
+const getAvailableResources = () => {
+  try {
+    const customersData = localStorage.getItem('qplz_customers');
+    const venuesData = localStorage.getItem('qplz_venues');
+    
+    const customers: CustomerResource[] = customersData ? JSON.parse(customersData) : [];
+    const venues: VenueResource[] = venuesData ? JSON.parse(venuesData) : [];
+    
+    return { customers, venues };
+  } catch (error) {
+    console.error('获取资源数据失败:', error);
+    return { customers: [], venues: [] };
+  }
+};
+
+// 生成活动方案大纲的prompt（包含资源匹配）
 const generateOutlinePrompt = (data: EventPlanningData) => {
+  const { customers, venues } = getAvailableResources();
+  
+  let resourceSection = '';
+  
+  if (customers.length > 0 || venues.length > 0) {
+    resourceSection = `\n现有资源信息：\n`;
+    
+    if (customers.length > 0) {
+      resourceSection += `客户资源：\n`;
+      customers.forEach(customer => {
+        resourceSection += `- ${customer.name}（${customer.title}）${customer.rating ? ` - ${customer.rating}星级` : ''}${customer.hasCooperated ? ' - 已合作' : ''}\n`;
+      });
+    }
+    
+    if (venues.length > 0) {
+      resourceSection += `场地资源：\n`;
+      venues.forEach(venue => {
+        const capacityInfo = venue.capacity ? ` - 容纳${venue.capacity}人` : '';
+        const ratingInfo = venue.rating ? ` - ${venue.rating}星级` : '';
+        const cooperationInfo = venue.hasCooperated ? ' - 已合作' : '';
+        resourceSection += `- ${venue.name}（${venue.location}）${capacityInfo}${ratingInfo}${cooperationInfo}\n`;
+      });
+    }
+    
+    resourceSection += `\n请在三个方案中，至少有一个方案要充分利用这些现有资源，匹配最适合的客户资源和场地资源，并在方案中明确体现。\n`;
+  }
+
   return `你是一个专业的活动策划师，请根据以下信息为女性社区设计3个不同风格的活动策划方案大纲：
 
 活动信息：
@@ -38,7 +82,7 @@ const generateOutlinePrompt = (data: EventPlanningData) => {
 ${data.eventDate ? `- 期望日期：${data.eventDate}` : ''}
 ${data.userProfile ? `- 目标用户：${data.userProfile}` : ''}
 ${data.requirements ? `- 特殊要求：${data.requirements}` : ''}
-${data.venueNeeds ? `- 场地需求：${data.venueNeeds}` : ''}
+${data.venueNeeds ? `- 场地需求：${data.venueNeeds}` : ''}${resourceSection}
 
 请生成3个不同风格的活动方案，每个方案包含：
 1. 方案标题（吸引人的活动名称）
@@ -67,7 +111,8 @@ ${data.venueNeeds ? `- 场地需求：${data.venueNeeds}` : ''}
 - 内容要与用户输入的主题和描述高度相关
 - 预算要符合实际情况
 - 场地推荐要具体到城市
-- 突出女性社区的特色`;
+- 突出女性社区的特色
+- 标题和内容不要包含emoji表情符号`;
 };
 
 // 生成优化方案的prompt
@@ -110,7 +155,11 @@ ${enhancementRequirements}
       "venue": "优化后的场地建议"
     }
   ]
-}`;
+}
+
+要求：
+- 标题和内容不要包含emoji表情符号
+- 保持专业性和可执行性`;
 };
 
 // 生成完整策划书的prompt
@@ -142,7 +191,11 @@ const generateFinalPlanPrompt = (finalOutline: OutlineOption, originalData: Even
 7. 风险管控方案
 8. 后续跟进计划
 
-请用Markdown格式输出，要求内容详实、专业、可执行。`;
+请用Markdown格式输出，要求：
+- 内容详实、专业、可执行
+- 不要使用emoji表情符号
+- 标题要清晰简洁
+- 保持专业的商务文档风格`;
 };
 
 // 改进的JSON解析函数

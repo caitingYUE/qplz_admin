@@ -379,7 +379,7 @@ const ResourcesPage: React.FC = () => {
     <div style={{ padding: '24px', height: '100vh', overflow: 'auto' }}>
       <div style={{ marginBottom: '24px' }}>
         <Title level={2} style={{ margin: 0, color: '#b01c02' }}>
-          📚 资源宝库
+          资源宝库
         </Title>
         <Text type="secondary">
           管理您的客户资源和场地资源，助力活动策划和商务合作
@@ -409,7 +409,7 @@ const ResourcesPage: React.FC = () => {
             </Button>
           }
         >
-          <TabPane tab="👥 客户资源" key="customers">
+          <TabPane tab="客户资源" key="customers">
             <Table
               columns={customerColumns}
               dataSource={customers}
@@ -425,7 +425,7 @@ const ResourcesPage: React.FC = () => {
               }}
             />
           </TabPane>
-          <TabPane tab="🏢 场地资源" key="venues">
+          <TabPane tab="场地资源" key="venues">
             <Table
               columns={venueColumns}
               dataSource={venues}

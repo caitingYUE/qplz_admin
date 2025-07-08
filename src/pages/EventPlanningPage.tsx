@@ -256,7 +256,7 @@ const EventPlanningPage: React.FC = () => {
       }}>
         <div>
           <Title level={2} style={{ margin: 0, color: '#b01c02' }}>
-            🎯 活动策划助手
+            活动策划助手
           </Title>
           <Paragraph style={{ margin: '4px 0 0 0', color: '#666' }}>
             将您的想法转化为专业的活动策划方案
@@ -324,7 +324,7 @@ const EventPlanningPage: React.FC = () => {
 
       {/* 进度条模态窗口 */}
       <Modal
-        title="🎯 AI生成进度"
+        title="AI生成进度"
         open={showProgressModal}
         footer={null}
         closable={false}
