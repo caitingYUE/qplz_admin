@@ -8,13 +8,15 @@ import {
   HomeOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  BulbOutlined
+  BulbOutlined,
+  DatabaseOutlined
 } from '@ant-design/icons';
 import EventList from './components/EventList';
 import EventForm from './components/EventForm';
 import RegistrationList from './components/RegistrationList';
 import Dashboard from './components/Dashboard';
 import EventPlanningPage from './pages/EventPlanningPage';
+import ResourcesPage from './pages/ResourcesPage';
 
 const { Header, Sider, Content } = Layout;
 
@@ -51,6 +53,11 @@ const AppContent: React.FC = () => {
       key: '/event-planning',
       icon: <BulbOutlined />,
       label: '活动策划',
+    },
+    {
+      key: '/resources',
+      icon: <DatabaseOutlined />,
+      label: '资源宝库',
     },
   ];
 
@@ -143,6 +150,7 @@ const AppContent: React.FC = () => {
             <Route path="/edit-event/:id" element={<EventForm />} />
             <Route path="/registrations" element={<RegistrationList />} />
             <Route path="/event-planning" element={<EventPlanningPage />} />
+            <Route path="/resources" element={<ResourcesPage />} />
           </Routes>
         </Content>
       </Layout>

@@ -1,17 +1,45 @@
+// 活动相关类型
 export interface Event {
   id: string;
   name: string;
-  subtitle?: string;
-  startTime: string;
-  endTime: string;
-  location: string;
-  maxParticipants: number;
-  currentParticipants: number;
   description: string;
-  fee?: string;
-  guests: Guest[];
-  poster?: string;
-  status: 'draft' | 'published' | 'offline';
+  date: string;
+  time: string;
+  location: string;
+  capacity: number;
+  registrations: number;
+  status: 'draft' | 'published' | 'cancelled' | 'completed';
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 客户资源类型
+export interface CustomerResource {
+  id: string;
+  name: string; // 必须
+  title: string; // 必须
+  photo?: string; // 可选
+  contact?: string; // 可选
+  wechat?: string; // 可选
+  source: string; // 必须：客户来源
+  description?: string; // 可选：简要说明
+  rating?: 1 | 2 | 3 | 4 | 5; // 可选：1-5星级
+  hasCooperated?: boolean; // 可选：是否合作过
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 场地资源类型
+export interface VenueResource {
+  id: string;
+  name: string; // 必须：场地名称
+  location: string; // 必须：场地地点
+  capacity?: number; // 可选：可容纳人数
+  photo?: string; // 可选：场地照片
+  contactPerson: string; // 必须：场地对接人
+  contactPhone: string; // 必须：场地对接联系方式
+  hasCooperated?: boolean; // 可选：是否合作过
+  rating?: 1 | 2 | 3 | 4 | 5; // 可选：1-5星级
   createdAt: string;
   updatedAt: string;
 }
