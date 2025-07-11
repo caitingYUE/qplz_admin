@@ -154,16 +154,16 @@ export class DocumentExporter {
     try {
       const wordHtml = this.generateWordHtml(title, content);
       
-      // 创建Blob对象
+      // 创建Blob对象，使用docx格式
       const blob = new Blob(['\ufeff', wordHtml], {
-        type: 'application/msword'
+        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
       });
       
       // 创建下载链接
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${title}_策划书_${new Date().toISOString().split('T')[0]}.doc`;
+      link.download = `${title}_策划书_${new Date().toISOString().split('T')[0]}.docx`;
       
       // 触发下载
       document.body.appendChild(link);

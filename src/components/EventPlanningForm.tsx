@@ -17,6 +17,8 @@ interface EventPlanningData {
   city: string;
   eventDate?: string;
   duration: string;
+  organizerName?: string;
+  organizerDescription?: string;
 }
 
 interface EventPlanningFormProps {
@@ -52,7 +54,9 @@ const EventPlanningForm: React.FC<EventPlanningFormProps> = ({
       venueNeeds: values.venueNeeds,
       city: values.city,
       eventDate: values.eventDate?.format('YYYY-MM-DD'),
-      duration: values.duration
+      duration: values.duration,
+      organizerName: values.organizerName,
+      organizerDescription: values.organizerDescription
     };
     onSubmit(formData);
   };
@@ -169,7 +173,30 @@ const EventPlanningForm: React.FC<EventPlanningFormProps> = ({
           </Form.Item>
         </div>
 
-        {/* 第三行：活动描述 */}
+        {/* 第三行：主办方信息 */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+          <Form.Item
+            name="organizerName"
+            label="主办方名称"
+          >
+            <Input 
+              placeholder="例如：QPLZ女性社区、XX科技公司"
+              size="large"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="organizerDescription"
+            label="主办方介绍"
+          >
+            <TextArea 
+              placeholder="简要介绍主办方的背景、理念和特色..."
+              rows={2}
+            />
+          </Form.Item>
+        </div>
+
+        {/* 第四行：活动描述 */}
         <Form.Item
           name="description"
           label={<><span style={{ color: 'red' }}>*</span> 活动描述</>}
@@ -183,7 +210,7 @@ const EventPlanningForm: React.FC<EventPlanningFormProps> = ({
           />
         </Form.Item>
 
-        {/* 第四行：可选信息 */}
+        {/* 第五行：可选信息 */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
           <Form.Item
             name="userProfile"
@@ -206,7 +233,7 @@ const EventPlanningForm: React.FC<EventPlanningFormProps> = ({
           </Form.Item>
         </div>
 
-        {/* 第五行：场地需求 */}
+        {/* 第六行：场地需求 */}
         <Form.Item
           name="venueNeeds"
           label="场地需求"

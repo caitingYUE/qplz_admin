@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Button, Space, Typography, Divider, message, Dropdown, MenuProps } from 'antd';
+import { Card, Button, Space, Typography, Divider, message, Dropdown, MenuProps, Input, Modal } from 'antd';
 import { 
   DownloadOutlined, 
   LeftOutlined, 
@@ -8,24 +8,63 @@ import {
   FileWordOutlined,
   FileTextOutlined,
   CopyOutlined,
-  MoreOutlined
+  MoreOutlined,
+  HeartOutlined,
+  HeartFilled,
+  EditOutlined,
+  SaveOutlined,
+  UndoOutlined
 } from '@ant-design/icons';
 import { DocumentExporter } from '../utils/documentExport';
 
 const { Title, Paragraph } = Typography;
+const { TextArea } = Input;
 
 interface FinalPlanProps {
   finalPlan: string;
   onRestart: () => void;
   onBack: () => void;
+  onSavePlan?: () => void;
+  canSave?: boolean;
+  onPlanUpdate?: (updatedPlan: string) => void;
 }
 
 const FinalPlan: React.FC<FinalPlanProps> = ({
   finalPlan,
   onRestart,
-  onBack
+  onBack,
+  onSavePlan,
+  canSave = false,
+  onPlanUpdate
 }) => {
   const [isExporting, setIsExporting] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [editingPlan, setEditingPlan] = useState(finalPlan);
+  const [isEditing, setIsEditing] = useState(false);
+
+  const handleSavePlan = () => {
+    if (onSavePlan) {
+      onSavePlan();
+      setIsSaved(true);
+    }
+  };
+
+  const handleEditPlan = () => {
+    setEditingPlan(finalPlan);
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingPlan(finalPlan);
+    setIsEditing(false);
+  };
+
+  const handleSaveEdit = () => {
+    if (onPlanUpdate) {
+      onPlanUpdate(editingPlan);
+      setIsEditing(false);
+    }
+  };
 
   // 改进的Markdown渲染函数
   const renderMarkdown = (text: string) => {
@@ -242,6 +281,27 @@ const FinalPlan: React.FC<FinalPlanProps> = ({
           >
             返回优化
           </Button>
+          
+          {canSave && (
+            <Button 
+              icon={isSaved ? <HeartFilled style={{ color: '#ff4d4f' }} /> : <HeartOutlined />}
+              onClick={handleSavePlan}
+              disabled={isSaved}
+              type={isSaved ? "default" : "dashed"}
+            >
+              {isSaved ? '已收藏' : '收藏方案'}
+            </Button>
+          )}
+          
+          <Button 
+            icon={<EditOutlined />}
+            onClick={handleEditPlan}
+            disabled={isEditing}
+            type="dashed"
+          >
+            编辑方案
+          </Button>
+          
           <Dropdown
             menu={{ items: downloadMenuItems }}
             trigger={['click']}
@@ -280,7 +340,34 @@ const FinalPlan: React.FC<FinalPlanProps> = ({
         }}
       >
         <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-          {renderMarkdown(finalPlan)}
+          {isEditing ? (
+            <div style={{ position: 'relative' }}>
+              <TextArea
+                rows={20}
+                value={editingPlan}
+                onChange={(e) => setEditingPlan(e.target.value)}
+                style={{ fontSize: '16px', fontFamily: 'inherit', lineHeight: '1.6' }}
+              />
+              <div style={{ position: 'absolute', bottom: '10px', right: '10px', display: 'flex', gap: '8px' }}>
+                <Button 
+                  icon={<UndoOutlined />} 
+                  onClick={handleCancelEdit}
+                  style={{ backgroundColor: '#f0f0f0', borderColor: '#d9d9d9' }}
+                >
+                  取消
+                </Button>
+                <Button 
+                  icon={<SaveOutlined />} 
+                  onClick={handleSaveEdit}
+                  style={{ backgroundColor: '#28a745', borderColor: '#28a745' }}
+                >
+                  保存
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div>{renderMarkdown(finalPlan)}</div>
+          )}
         </div>
       </Card>
 

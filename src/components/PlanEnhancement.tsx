@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Card, Button, Space, Input, Typography, Row, Col, Tag, message } from 'antd';
-import { SendOutlined, LeftOutlined, CheckOutlined, LoadingOutlined } from '@ant-design/icons';
+import { ArrowRightOutlined, LeftOutlined, SendOutlined, FastForwardOutlined } from '@ant-design/icons';
 
 const { TextArea } = Input;
 const { Title, Paragraph, Text } = Typography;
@@ -17,29 +17,64 @@ interface OutlineOption {
 
 interface PlanEnhancementProps {
   selectedOutline: OutlineOption | null;
-  enhancedOutlines: OutlineOption[];
-  onEnhance: (requirements: string) => void;
-  onFinalSelect: (outline: OutlineOption) => void;
+  selectedOutlines?: OutlineOption[];
+  onOptimize: (outline: OutlineOption, optimizationRequirements?: string) => void;
   onBack: () => void;
   isGenerating: boolean;
+  savedOptimizationText?: string;
+  onOptimizationTextChange?: (text: string) => void;
 }
 
 const PlanEnhancement: React.FC<PlanEnhancementProps> = ({
   selectedOutline,
-  enhancedOutlines,
-  onEnhance,
-  onFinalSelect,
+  selectedOutlines = [],
+  onOptimize,
   onBack,
-  isGenerating
+  isGenerating,
+  savedOptimizationText = '',
+  onOptimizationTextChange
 }) => {
-  const [enhancementText, setEnhancementText] = useState('');
+  const [optimizationText, setOptimizationText] = useState(savedOptimizationText);
 
-  const handleEnhance = () => {
-    if (!enhancementText.trim()) {
-      message.warning('请输入优化要求');
-      return;
+  // 同步外部传入的保存文本
+  React.useEffect(() => {
+    setOptimizationText(savedOptimizationText);
+  }, [savedOptimizationText]);
+
+  const handleOptimize = () => {
+    if (selectedOutlines.length > 0) {
+      // 多选模式：创建一个综合的 outline
+      const combinedOutline: OutlineOption = {
+        id: 'combined-' + selectedOutlines.map(o => o.id).join('-'),
+        title: `综合方案：${selectedOutlines.map(o => o.title).join(' + ')}`,
+        overview: `综合了 ${selectedOutlines.length} 个方案的优点：\n${selectedOutlines.map((o, i) => `${String.fromCharCode(65 + i)}. ${o.overview}`).join('\n')}`,
+        highlights: [...new Set(selectedOutlines.flatMap(o => o.highlights))], // 去重合并亮点
+        timeline: selectedOutlines[0].timeline, // 使用第一个方案的时间安排作为基础
+        budget: selectedOutlines[0].budget, // 使用第一个方案的预算作为基础
+        venue: selectedOutlines[0].venue // 使用第一个方案的场地作为基础
+      };
+      onOptimize(combinedOutline, optimizationText.trim() || undefined);
+    } else if (selectedOutline) {
+      onOptimize(selectedOutline, optimizationText.trim() || undefined);
     }
-    onEnhance(enhancementText);
+  };
+
+  const handleSkip = () => {
+    if (selectedOutlines.length > 0) {
+      // 多选模式：创建一个综合的 outline
+      const combinedOutline: OutlineOption = {
+        id: 'combined-' + selectedOutlines.map(o => o.id).join('-'),
+        title: `综合方案：${selectedOutlines.map(o => o.title).join(' + ')}`,
+        overview: `综合了 ${selectedOutlines.length} 个方案的优点：\n${selectedOutlines.map((o, i) => `${String.fromCharCode(65 + i)}. ${o.overview}`).join('\n')}`,
+        highlights: [...new Set(selectedOutlines.flatMap(o => o.highlights))],
+        timeline: selectedOutlines[0].timeline,
+        budget: selectedOutlines[0].budget,
+        venue: selectedOutlines[0].venue
+      };
+      onOptimize(combinedOutline);
+    } else if (selectedOutline) {
+      onOptimize(selectedOutline);
+    }
   };
 
   return (
@@ -57,7 +92,10 @@ const PlanEnhancement: React.FC<PlanEnhancementProps> = ({
             🎨 方案优化
           </Title>
           <Text type="secondary">
-            基于您选择的方案，告诉我们需要如何优化，我们将生成3个增强版本
+            {selectedOutlines.length > 0 
+              ? `您已选择 ${selectedOutlines.length} 个方案进行综合，我们将融合各方案优点并根据您的建议生成完整的活动策划书`
+              : '您可以提出优化建议，我们将基于您的建议生成完整的活动策划书'
+            }
           </Text>
         </div>
         <Button 
@@ -68,26 +106,63 @@ const PlanEnhancement: React.FC<PlanEnhancementProps> = ({
         </Button>
       </div>
 
-      <div style={{ flex: 1, overflow: 'auto' }}>
+      <div style={{ flex: 1, overflow: 'auto', maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
         {/* 已选择的方案 */}
-        {selectedOutline && (
+        {selectedOutlines.length > 0 ? (
+          <Card 
+            title={`已选择的方案 (${selectedOutlines.length}个)`}
+            style={{ marginBottom: '24px' }}
+          >
+            <Row gutter={[16, 16]}>
+              {selectedOutlines.map((outline, index) => (
+                <Col span={selectedOutlines.length === 1 ? 24 : 12} key={outline.id}>
+                  <div style={{ border: '1px solid #f0f0f0', borderRadius: '6px', padding: '16px' }}>
+                    <div style={{ marginBottom: '8px' }}>
+                      <Tag color={index === 0 ? 'blue' : index === 1 ? 'green' : 'orange'}>
+                        方案 {String.fromCharCode(65 + index)}
+                      </Tag>
+                      <Title level={5} style={{ margin: '4px 0', display: 'inline-block', marginLeft: '8px' }}>
+                        {outline.title}
+                      </Title>
+                    </div>
+                    <Paragraph style={{ marginBottom: '12px', fontSize: '13px', color: '#666' }}>
+                      {outline.overview}
+                    </Paragraph>
+                    <div style={{ marginBottom: '8px' }}>
+                      <Text strong style={{ fontSize: '12px' }}>亮点：</Text>
+                      <div style={{ marginTop: '4px' }}>
+                        {outline.highlights.slice(0, 3).map((highlight, idx) => (
+                          <Tag key={idx} style={{ margin: '2px 4px 2px 0', fontSize: '11px' }}>
+                            {highlight}
+                          </Tag>
+                        ))}
+                        {outline.highlights.length > 3 && <span style={{ fontSize: '12px', color: '#999' }}>...</span>}
+                      </div>
+                    </div>
+                  </div>
+                </Col>
+              ))}
+            </Row>
+          </Card>
+        ) : selectedOutline ? (
           <Card 
             title="当前选择的方案"
-            style={{ marginBottom: '20px' }}
-            size="small"
+            style={{ marginBottom: '24px' }}
           >
-            <Row>
-              <Col span={12}>
+            <Row gutter={24}>
+              <Col span={16}>
                 <div>
-                  <Text strong>{selectedOutline.title}</Text>
-                  <Paragraph style={{ marginTop: '8px', marginBottom: '12px' }}>
+                  <Title level={4} style={{ marginBottom: '12px' }}>
+                    {selectedOutline.title}
+                  </Title>
+                  <Paragraph style={{ marginBottom: '16px', fontSize: '14px', lineHeight: '1.6' }}>
                     {selectedOutline.overview}
                   </Paragraph>
                   <div>
                     <Text strong>活动亮点：</Text>
-                    <div style={{ marginTop: '4px' }}>
+                    <div style={{ marginTop: '8px' }}>
                       {selectedOutline.highlights.map((highlight, idx) => (
-                        <Tag key={idx} style={{ margin: '2px 4px 2px 0' }}>
+                        <Tag key={idx} color="blue" style={{ margin: '4px 8px 4px 0' }}>
                           {highlight}
                         </Tag>
                       ))}
@@ -95,171 +170,121 @@ const PlanEnhancement: React.FC<PlanEnhancementProps> = ({
                   </div>
                 </div>
               </Col>
-              <Col span={12}>
+              <Col span={8}>
                 <div>
-                  <div style={{ marginBottom: '8px' }}>
-                    <Text strong>预算：</Text>
-                    <Text style={{ marginLeft: '8px' }}>{selectedOutline.budget}</Text>
+                  <div style={{ marginBottom: '12px' }}>
+                    <Text strong>预算范围：</Text>
+                    <div style={{ marginTop: '4px', color: '#666' }}>
+                      {selectedOutline.budget}
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: '12px' }}>
+                    <Text strong>推荐场地：</Text>
+                    <div style={{ marginTop: '4px', color: '#666' }}>
+                      {selectedOutline.venue}
+                    </div>
                   </div>
                   <div>
-                    <Text strong>场地：</Text>
-                    <Text style={{ marginLeft: '8px' }}>{selectedOutline.venue}</Text>
+                    <Text strong>时间安排：</Text>
+                    <div style={{ marginTop: '4px' }}>
+                      {selectedOutline.timeline.slice(0, 3).map((time, idx) => (
+                        <div key={idx} style={{ fontSize: '12px', color: '#666', lineHeight: '1.4', marginBottom: '2px' }}>
+                          • {time}
+                        </div>
+                      ))}
+                      {selectedOutline.timeline.length > 3 && (
+                        <div style={{ fontSize: '12px', color: '#999' }}>
+                          ...等{selectedOutline.timeline.length}个环节
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </Col>
             </Row>
           </Card>
-        )}
+        ) : null}
 
-        {/* 优化要求输入 */}
-        {enhancedOutlines.length === 0 && (
-          <Card title="提出优化要求" style={{ marginBottom: '20px' }}>
-            <div style={{ marginBottom: '16px' }}>
-              <Text type="secondary">
-                请描述您希望如何优化这个方案，比如：
+        {/* 优化建议输入 */}
+        <Card 
+          title="优化建议（可选）"
+          style={{ marginBottom: '24px' }}
+        >
+          <div style={{ marginBottom: '16px' }}>
+            <Text type="secondary">
+              如果您对当前方案有特殊要求或优化建议，请在下方详细描述。我们将基于您的建议生成更符合需求的完整策划书：
+            </Text>
+            <div style={{ marginTop: '12px' }}>
+              <Text type="secondary" style={{ fontSize: '13px' }}>
+                💡 优化建议示例：
               </Text>
-              <ul style={{ marginTop: '8px', color: '#666', fontSize: '14px' }}>
-                <li>增加更多互动环节</li>
-                <li>邀请特定领域的嘉宾</li>
-                <li>调整时间安排</li>
-                <li>增加特定的活动内容</li>
-                <li>优化预算分配</li>
+              <ul style={{ marginTop: '8px', color: '#666', fontSize: '13px', paddingLeft: '20px' }}>
+                <li>增加更多互动环节，提升参与者体验</li>
+                <li>邀请知名女性企业家作为主讲嘉宾</li>
+                <li>增加网络直播功能，扩大影响范围</li>
+                <li>安排分组讨论和成果展示环节</li>
+                <li>预算控制在XX万以内，优化成本分配</li>
+                <li>增加后续跟踪服务和社群建设</li>
               </ul>
             </div>
-            
-            <TextArea
-              value={enhancementText}
-              onChange={(e) => setEnhancementText(e.target.value)}
-              placeholder="请详细描述您的优化要求..."
-              rows={4}
-              style={{ marginBottom: '16px' }}
-            />
-            
+          </div>
+          
+          <TextArea
+            value={optimizationText}
+            onChange={(e) => {
+              const newValue = e.target.value;
+              setOptimizationText(newValue);
+              // 实时保存用户输入
+              onOptimizationTextChange?.(newValue);
+            }}
+            placeholder="请详细描述您的优化建议和特殊要求..."
+            rows={6}
+            style={{ marginBottom: '20px', fontSize: '14px' }}
+          />
+          
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '16px' }}>
+            <Button
+              size="large"
+              icon={<FastForwardOutlined />}
+              onClick={handleSkip}
+              disabled={!selectedOutline && selectedOutlines.length === 0}
+              style={{ minWidth: '140px' }}
+            >
+              跳过优化，直接生成
+            </Button>
             <Button
               type="primary"
-              icon={isGenerating ? <LoadingOutlined /> : <SendOutlined />}
-              onClick={handleEnhance}
+              size="large"
+              icon={<ArrowRightOutlined />}
+              onClick={handleOptimize}
               loading={isGenerating}
-              style={{ backgroundColor: '#b01c02', borderColor: '#b01c02' }}
+              disabled={!selectedOutline && selectedOutlines.length === 0}
+              style={{ 
+                backgroundColor: '#b01c02', 
+                borderColor: '#b01c02',
+                minWidth: '140px'
+              }}
             >
-              {isGenerating ? '正在优化方案...' : '生成优化方案'}
+              {isGenerating ? '正在生成...' : (selectedOutlines.length > 0 ? '综合方案并生成' : '应用优化并生成')}
             </Button>
-          </Card>
-        )}
-
-        {/* 增强版方案 */}
-        {enhancedOutlines.length > 0 && (
-          <div>
-            <div style={{ marginBottom: '16px' }}>
-              <Title level={4}>🚀 增强版方案</Title>
-              <Text type="secondary">
-                根据您的要求，我们生成了3个优化版本，请选择最终方案：
-              </Text>
-            </div>
-
-            <Row gutter={[16, 16]}>
-              {enhancedOutlines.map((outline, index) => (
-                <Col span={8} key={outline.id}>
-                  <Card
-                    hoverable
-                    style={{ 
-                      height: '100%',
-                      border: '1px solid #d9d9d9',
-                      borderRadius: '8px'
-                    }}
-                    bodyStyle={{ padding: '16px', height: '100%' }}
-                    actions={[
-                      <Button 
-                        type="primary" 
-                        icon={<CheckOutlined />}
-                        onClick={() => onFinalSelect(outline)}
-                        style={{ 
-                          backgroundColor: '#b01c02',
-                          borderColor: '#b01c02',
-                          width: '90%'
-                        }}
-                      >
-                        确定选择
-                      </Button>
-                    ]}
-                  >
-                    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                      {/* 方案标题 */}
-                      <div style={{ marginBottom: '12px' }}>
-                        <Tag color={index === 0 ? 'volcano' : index === 1 ? 'geekblue' : 'purple'}>
-                          增强版 {String.fromCharCode(65 + index)}
-                        </Tag>
-                        <Title level={5} style={{ margin: '6px 0' }}>
-                          {outline.title}
-                        </Title>
-                      </div>
-
-                      {/* 方案概述 */}
-                      <div style={{ marginBottom: '12px' }}>
-                        <Text strong style={{ fontSize: '13px' }}>优化概述：</Text>
-                        <Paragraph style={{ marginTop: '4px', marginBottom: 0, fontSize: '13px' }}>
-                          {outline.overview}
-                        </Paragraph>
-                      </div>
-
-                      {/* 活动亮点 */}
-                      <div style={{ marginBottom: '12px' }}>
-                        <Text strong style={{ fontSize: '13px' }}>新增亮点：</Text>
-                        <div style={{ marginTop: '4px' }}>
-                          {outline.highlights.slice(-2).map((highlight, idx) => (
-                            <Tag 
-                              key={idx} 
-                              color="red"
-                              style={{ margin: '2px 4px 2px 0', fontSize: '11px' }}
-                            >
-                              {highlight}
-                            </Tag>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* 所有亮点 */}
-                      <div style={{ marginTop: 'auto' }}>
-                        <Text strong style={{ fontSize: '12px' }}>全部亮点：</Text>
-                        <div style={{ marginTop: '4px' }}>
-                          {outline.highlights.map((highlight, idx) => (
-                            <Tag 
-                              key={idx} 
-                              style={{ margin: '1px 2px', fontSize: '10px' }}
-                            >
-                              {highlight}
-                            </Tag>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                </Col>
-              ))}
-            </Row>
-
-            {/* 重新优化按钮 */}
-            <div style={{ 
-              marginTop: '20px', 
-              textAlign: 'center',
-              padding: '16px',
-              backgroundColor: '#f6f8fa',
-              borderRadius: '6px'
-            }}>
-              <Text type="secondary" style={{ marginBottom: '12px', display: 'block' }}>
-                不满意当前的优化结果？
-              </Text>
-              <Button
-                onClick={() => {
-                  setEnhancementText('');
-                  // 这里可以清空enhancedOutlines让用户重新输入要求
-                }}
-              >
-                重新提出优化要求
-              </Button>
-            </div>
           </div>
-        )}
+        </Card>
+
+        {/* 提示信息 */}
+        <div style={{ 
+          padding: '16px', 
+          backgroundColor: '#f6f8fa', 
+          borderRadius: '8px',
+          textAlign: 'center',
+          border: '1px solid #e1e8ed'
+        }}>
+          <Text type="secondary" style={{ fontSize: '13px' }}>
+            {selectedOutlines.length > 0 
+              ? `🔄 我们将综合 ${selectedOutlines.length} 个方案的优点，生成包含详细执行方案、时间安排、预算分配、人员配置等完整信息的活动策划书`
+              : '📝 接下来我们将为您生成包含详细执行方案、时间安排、预算分配、人员配置等完整信息的活动策划书'
+            }
+          </Text>
+        </div>
       </div>
     </div>
   );

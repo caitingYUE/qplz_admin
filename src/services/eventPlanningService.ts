@@ -14,6 +14,8 @@ export interface EventPlanningData {
   city: string;
   eventDate?: string;
   duration: string;
+  organizerName?: string;
+  organizerDescription?: string;
 }
 
 export interface OutlineOption {
@@ -80,6 +82,8 @@ const generateOutlinePrompt = (data: EventPlanningData) => {
 - 举办城市：${data.city}
 - 活动时长：${data.duration}
 ${data.eventDate ? `- 期望日期：${data.eventDate}` : ''}
+${data.organizerName ? `- 主办方：${data.organizerName}` : ''}
+${data.organizerDescription ? `- 主办方介绍：${data.organizerDescription}` : ''}
 ${data.userProfile ? `- 目标用户：${data.userProfile}` : ''}
 ${data.requirements ? `- 特殊要求：${data.requirements}` : ''}
 ${data.venueNeeds ? `- 场地需求：${data.venueNeeds}` : ''}${resourceSection}
@@ -132,6 +136,8 @@ const generateEnhancedPrompt = (baseOutline: OutlineOption, enhancementRequireme
 - 描述：${originalData.description}
 - 参与人数：${originalData.participantCount}
 - 城市：${originalData.city}
+${originalData.organizerName ? `- 主办方：${originalData.organizerName}` : ''}
+${originalData.organizerDescription ? `- 主办方介绍：${originalData.organizerDescription}` : ''}
 
 用户优化要求：
 ${enhancementRequirements}
@@ -199,42 +205,72 @@ const generateFinalPlanPrompt = (finalOutline: OutlineOption, originalData: Even
 - 描述：${originalData.description}
 - 参与人数：${originalData.participantCount}
 - 城市：${originalData.city}
-- 活动时长：${originalData.duration}${timelineSection}
+- 活动时长：${originalData.duration}
+${originalData.organizerName ? `- 主办方：${originalData.organizerName}` : ''}
+${originalData.organizerDescription ? `- 主办方介绍：${originalData.organizerDescription}` : ''}${timelineSection}
 
 请生成一份专业完整的活动策划书，包含以下章节：
-1. 项目概述
-2. 活动亮点与价值
-3. 详细执行方案
-4. 预算明细表
-5. 场地方案与要求
-6. 营销推广策略
-7. ${eventDate ? '倒排时间计划（重点章节）' : '时间安排'}
-8. 风险管控方案
-9. 人员分工与职责
-10. 后续跟进计划
 
-${eventDate ? `
-特别要求 - 倒排时间计划章节：
-请制作一个详细的倒排时间表，格式如下：
-## 倒排时间计划
+1. **活动概述**
+   - 活动背景与目标
+   - 活动主题和亮点
+   - 目标受众分析
 
-### 活动前60天（具体日期）
-- [ ] 待办事项1（负责人：XXX）
-- [ ] 待办事项2（负责人：XXX）
+2. **活动详细方案**
+   - 详细的活动流程和时间安排
+   - 各环节的具体内容
+   - 嘉宾和讲师安排
 
-### 活动前30天（具体日期）
-- [ ] 待办事项1（负责人：XXX）
-- [ ] 待办事项2（负责人：XXX）
+3. **财务测算表**
+   请制作详细的财务预算表，包含：
+   
+   **成本支出：**
+   - 场地费用（租赁费、布置费等）
+   - 餐食/下午茶费用（根据人数和标准）
+   - 住宿费用（如活动超过1天）
+   - 嘉宾费用（讲师费、交通费、住宿费）
+   - 宣传物料费用（设计、印刷、制作）
+   - 活动器材费用（音响、投影等）
+   - 人员费用（工作人员、服务费）
+   - 其他杂费（保险、应急费用等）
+   
+   **收入来源：**
+   - 参与者报名费（根据人数和定价）
+   - 品牌赞助费（主赞助商、协办商）
+   - 其他收入（展位费、广告费等）
+   
+   **财务分析：**
+   - 总成本预算
+   - 总收入预期
+   - 盈亏平衡点分析
+   - 风险评估和应对措施
 
-以此类推，细化到活动前1天。每个时间节点要包含3-8个具体的待办事项。
-` : ''}
+4. **场地方案**
+   - 场地选择标准和推荐
+   - 场地布局和设计
+   - 设备和设施需求
 
-请用Markdown格式输出，要求：
-- 内容详实、专业、可执行
-- 不要使用emoji表情符号
-- 标题要清晰简洁
-- 保持专业的商务文档风格
-- ${eventDate ? '重点关注倒排时间计划的详细性和可操作性' : ''}`;
+5. **营销推广策略**
+   - 目标受众定位
+   - 推广渠道和方式
+   - 宣传时间节点
+
+6. **执行团队和分工**
+   - 组织架构
+   - 关键岗位职责
+   - 协调沟通机制
+
+7. **风险管控方案**
+   - 潜在风险识别
+   - 应急预案
+   - 备选方案
+
+8. **成功指标和评估**
+   - KPI设定
+   - 数据收集方法
+   - 效果评估标准
+
+请用Markdown格式输出，确保格式清晰，表格数据准确合理。财务测算要基于实际市场价格，确保数据的可信度和可执行性。`;
 };
 
 // 改进的JSON解析函数
